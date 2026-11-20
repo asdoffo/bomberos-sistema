@@ -1,0 +1,15 @@
+"id","descripcion"
+1,Autobomba
+2,Cisterna
+3,Unidad de Rescate
+4,Unidad sanitaria
+5,Camioneta de apoyo
+6,Unidad de Transporte Carga/Personal
+7,Autobomba Cisterna > a 10000 lts
+8,Ataque rápido
+9,Autobomba Liviana <= a 1500 lts
+10,Autobomba Pesada > a 3000 hasta 10000 lts
+11,Embarcaciones
+12,Escalante/Hidroelevador
+13,Otros
+14,Ambulancia

@@ -1,0 +1,46 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}Personal E-100 — Bomberos Villa María{% endblock %}
+
+{% block contenido %}
+<div class="card" style="max-width:820px;">
+  <h1>Personal E-100</h1>
+  <p class="ayuda">Quienes atienden el 100. Los pone la municipalidad y cambian durante el año: no son integrantes del
+    cuerpo. Al cargar un parte se eligen los que están activos.</p>
+  <h2>{% if editado %}Editar: {{ editado }}{% else %}Agregar{% endif %}</h2>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.apellido_nombre %}
+      {% include "partes/_campo.html" with campo=form.dni %}
+      {% include "partes/_campo.html" with campo=form.telefono %}
+      {% include "partes/_campo.html" with campo=form.fecha_asignacion %}
+      {% include "partes/_campo.html" with campo=form.hasta %}
+      {% include "partes/_campo.html" with campo=form.activo %}
+    </div>
+    <div class="acciones">
+      <button type="submit" class="btn">{% if editado %}Guardar cambios{% else %}Agregar{% endif %}</button>
+      {% if editado %}<a class="btn gris" href="{% url 'personal_e100' %}">Cancelar</a>{% endif %}
+    </div>
+  </form>
+</div>
+
+<div class="card" style="max-width:820px;">
+  <h2>Cargados ({{ personas|length }})</h2>
+  {% if personas %}
+  <div class="tabla-scroll">
+  <table>
+    <tr><th>Apellido y nombre</th><th>DNI</th><th>Teléfono</th><th>Desde</th><th>Hasta</th><th>Estado</th><th></th></tr>
+    {% for p in personas %}
+    <tr>
+      <td>{{ p.apellido_nombre }}</td><td>{{ p.dni|default:"—" }}</td><td>{{ p.telefono|default:"—" }}</td>
+      <td>{{ p.fecha_asignacion|date:"d/m/Y" }}</td><td>{{ p.hasta|date:"d/m/Y"|default:"—" }}</td>
+      <td>{% if p.activo %}Activo{% else %}Inactivo{% endif %}</td>
+      <td><a href="?editar={{ p.pk }}">Editar</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% else %}<p class="vacio">Todavía no hay personal E-100 cargado.</p>{% endif %}
+</div>
+{% endblock %}

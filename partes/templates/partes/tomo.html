@@ -1,0 +1,237 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}Tomo {{ periodo.anio }} — Bomberos Villa María{% endblock %}
+
+{% block estilos %}
+  .cabecera { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.8rem; }
+  .acciones-tomo { display:flex; gap:0.5rem; flex-wrap:wrap; }
+  .pestanas { display:flex; flex-wrap:wrap; gap:0.3rem; background:#f3f4f6; padding:0.25rem; border-radius:18px; margin-top:1rem; width:fit-content; max-width:100%; }
+  .pestanas a { padding:0.4rem 0.9rem; border-radius:999px; text-decoration:none; color:var(--gris); font-size:0.88rem; font-weight:600; white-space:nowrap; }
+  .pestanas a.activo { background:#fff; color:var(--rojo); box-shadow:0 1px 2px rgba(0,0,0,0.1); }
+  table.tabla { width:100%; border-collapse:collapse; font-size:0.9rem; }
+  .tabla th, .tabla td { text-align:left; padding:0.45rem 0.4rem; border-bottom:1px solid #f0f0f0; }
+  .tabla th { font-size:0.72rem; color:var(--gris); text-transform:uppercase; }
+  .tabla td.n, .tabla th.n { text-align:right; }
+  .numero { font-weight:700; color:var(--rojo); }
+  .tabla th button { all:unset; cursor:pointer; }
+  .tabla th button:hover, .tabla th button:focus-visible { color:var(--texto); text-decoration:underline; }
+  .tabla th[aria-sort] button { color:var(--rojo); }
+  .tabla tr.total td { font-weight:700; border-top:2px solid var(--borde); }
+  .cifras-tomo { display:grid; grid-template-columns:repeat(auto-fit, minmax(8rem, 1fr)); gap:0.6rem; margin:0.6rem 0; }
+  .cifras-tomo div { background:#f9fafb; border:1px solid var(--borde); border-radius:8px; padding:0.6rem; text-align:center; }
+  .cifras-tomo b { display:block; font-size:1.4rem; color:var(--rojo); }
+  .cifras-tomo small { color:var(--gris); font-size:0.75rem; }
+{% endblock %}
+
+{% block contenido %}
+<p style="margin:0 0 0.6rem 0;"><a href="{% url 'tomos' %}">Volver a Períodos</a></p>
+
+<div class="card">
+  <div class="cabecera">
+    <div>
+      <h1 style="margin-bottom:0.2rem;">Tomo {{ periodo.anio }}</h1>
+      <div class="subtitulo">
+        {% if periodo.cerrado %}Cerrado el {{ periodo.fecha_cierre|date:"d/m/Y H:i" }}{% if periodo.cerro %} por {{ periodo.cerro.get_full_name|default:periodo.cerro.username }}{% endif %}. Lo que se ve es como quedó al cerrarlo.
+        {% else %}Abierto. Las cuentas se actualizan con cada parte, capacitación y mantenimiento.{% endif %}
+      </div>
+    </div>
+    {% if perms.partes.gestionar_periodo and not periodo.cerrado %}
+    <div class="acciones-tomo">
+      <a class="btn gris" href="{% url 'numeros_tomo' periodo.anio %}">Números y bajas</a>
+    </div>
+    {% endif %}
+  </div>
+  {% if firma_cierre %}
+  <div class="sello">
+    <span class="marca-sello">CERRADO</span>
+    <span>Período cerrado y firmado por <b>{{ firma_cierre.firmante }}</b><br>
+      el {{ firma_cierre.fecha|date:"d/m/Y" }} a las {{ firma_cierre.fecha|time:"H:i" }} · Sello <code>{{ firma_cierre.codigo }}</code></span>
+  </div>
+  {% endif %}
+  {% if perms.partes.gestionar_periodo and not periodo.cerrado and not problemas %}
+  <details class="firmar">
+    <summary>Cerrar y firmar el período {{ periodo.anio }}</summary>
+    <p class="ayuda" style="margin:0.4rem 0 0 0;">Se guarda el resumen de cada bombero tal como está hoy, el año queda de solo lectura
+      y el cierre queda sellado a tu nombre. Confirmá con tu contraseña.</p>
+    <form method="post" action="{% url 'cerrar_tomo' periodo.anio %}" class="fila-firma">
+      {% csrf_token %}
+      <input type="password" name="clave" required autocomplete="current-password" aria-label="Tu contraseña" placeholder="Tu contraseña">
+      <button type="submit" class="btn">Cerrar y firmar</button>
+    </form>
+  </details>
+  {% endif %}
+  {% if problemas and perms.partes.gestionar_periodo %}
+    <div class="msg warning" style="margin:0.8rem 0 0 0;">Para cerrar el período {% for p in problemas %}{{ p }} {% endfor %}Se cierran desde el detalle de cada parte.</div>
+  {% endif %}
+
+  <nav class="pestanas">
+    {% for clave, nombre in vistas %}<a href="?ver={{ clave }}" class="{% if clave == ver %}activo{% endif %}">{{ nombre }}</a>{% endfor %}
+  </nav>
+</div>
+
+{% if ver == "bomberos" %}
+<div class="card">
+  <div class="cabecera">
+    <h2 style="margin:0;">Bomberos {{ periodo.anio }}</h2>
+    <a class="btn gris chico" href="?formato=csv">Descargar planilla (Excel)</a>
+  </div>
+  <p class="ayuda">Siniestros asistidos, partes como guardia, capacitaciones y mantenimientos de cada uno: los datos con los que Estadística calcula el mérito.</p>
+  {% if filas %}
+  <div class="tabla-scroll">
+  <table class="tabla tabla-adaptable">
+    <tr><th>N°</th><th>Apellido y nombre</th><th>Rango</th><th class="n">Siniestros</th><th class="n">Guardia</th>
+        <th class="n">Capacitaciones</th><th class="n">Horas</th><th class="n">Ayudante</th>
+        <th class="n">Mantenim.</th><th class="n">Horas</th></tr>
+    {% for f in filas %}
+    <tr>
+      <td class="numero">{{ f.numero_merito|stringformat:"03d"|default:"—" }}</td>
+      <td class="ancha">{% if perms.partes.view_integrante %}<a href="{% url 'ficha_bombero' f.integrante.pk %}?anio={{ periodo.anio }}">{{ f.integrante.apellido }}, {{ f.integrante.nombre }}</a>{% else %}{{ f.integrante.apellido }}, {{ f.integrante.nombre }}{% endif %}
+        {% if f.estado != "Activo" %}<span class="ayuda">({{ f.estado }})</span>{% endif %}</td>
+      <td class="entera ayuda">{{ f.rango }}</td>
+      <td class="n" data-label="Siniestros">{{ f.salidas }}</td>
+      <td class="n" data-label="Guardia">{{ f.guardias }}</td>
+      <td class="n" data-label="Capacit.">{{ f.capacitaciones }}</td>
+      <td class="n" data-label="Horas cap.">{{ f.horas_capacitacion|floatformat:"-1" }}</td>
+      <td class="n" data-label="Ayudante">{{ f.como_ayudante }}</td>
+      <td class="n" data-label="Mantenim.">{{ f.mantenimientos }}</td>
+      <td class="n" data-label="Horas mant.">{{ f.horas_mantenimiento|floatformat:"-1" }}</td>
+    </tr>
+    {% endfor %}
+    <tr class="total">
+      <td></td><td class="ancha">Total {{ periodo.anio }}</td><td class="entera"></td>
+      <td class="n" data-label="Siniestros">{{ totales.salidas }}</td>
+      <td class="n" data-label="Guardia">{{ totales.guardias }}</td>
+      <td class="n" data-label="Capacit.">{{ totales.capacitaciones }}</td>
+      <td class="n" data-label="Horas cap.">{{ totales.horas_capacitacion|floatformat:"-1" }}</td>
+      <td class="n" data-label="Ayudante">{{ totales.como_ayudante }}</td>
+      <td class="n" data-label="Mantenim.">{{ totales.mantenimientos }}</td>
+      <td class="n" data-label="Horas mant.">{{ totales.horas_mantenimiento|floatformat:"-1" }}</td>
+    </tr>
+  </table>
+  </div>
+  <p class="ayuda solo-pc" style="margin-bottom:0;">Tocá el título de una columna para ordenar por ella.</p>
+  {% else %}<p class="vacio">Todavía no hay bomberos con número ni actividad en {{ periodo.anio }}.{% if perms.partes.gestionar_periodo and not periodo.cerrado %} <a href="{% url 'numeros_tomo' periodo.anio %}">Asignar números</a>{% endif %}</p>{% endif %}
+</div>
+
+{% elif ver == "partes" %}
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+    <h2>Partes de siniestro {{ periodo.anio }} ({{ partes|length }})</h2>
+    {% if partes %}<a class="btn gris chico" href="{% url 'imprimir_partes_del_anio' periodo.anio %}">Todos en PDF</a>{% endif %}
+  </div>
+  {% if tiempos_salida %}
+  <p class="ayuda">Tiempo de salida: minutos desde que se inicia el parte hasta que la unidad sale del cuartel.</p>
+  <div class="cifras-tomo">
+    <div><b>{{ tiempos_salida.promedio|floatformat:"-1" }}</b><small>min. promedio</small></div>
+    <div><b>{{ tiempos_salida.mediana|floatformat:"-1" }}</b><small>min. mediana</small></div>
+    <div><b>{{ tiempos_salida.minimo }}</b><small>min. el más rápido</small></div>
+    <div><b>{{ tiempos_salida.maximo }}</b><small>min. el más lento</small></div>
+  </div>
+  <p class="ayuda">Sobre {{ tiempos_salida.cantidad }} salida{{ tiempos_salida.cantidad|pluralize }} con horario anotado.</p>
+  {% endif %}
+  {% if partes %}
+  <div class="tabla-scroll">
+  <table class="tabla">
+    <tr><th>N°</th><th>Fecha</th><th>Tipo</th><th>Ubicación</th><th class="n">Salida (min)</th><th>Estado</th><th>PDF</th></tr>
+    {% for p in partes %}
+    <tr>
+      <td><a class="numero" href="{% url 'detalle_parte' p.pk %}">{{ p.numero_correlativo }}/{{ p.anio }}</a></td>
+      <td>{{ p.fecha|date:"d/m/Y" }}</td>
+      <td>{{ p.tipo }} · {{ p.motivo }}</td>
+      <td>{{ p.ubicacion }}{% if p.barrio %} ({{ p.barrio }}){% endif %}</td>
+      <td class="n">{{ p.minutos_despacho|default_if_none:"—" }}</td>
+      <td>{{ p.estado_parte }}</td>
+      <td><a href="{% url 'imprimir_parte' p.pk %}">Ver PDF</a>{% if perms.partes.emitir_constancia and p.esta_cerrado %} · <a href="{% url 'constancia_intervencion' p.pk %}">Constancia</a>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% else %}<p class="vacio">No hay partes en {{ periodo.anio }}.</p>{% endif %}
+</div>
+
+{% elif ver == "mantenimientos" %}
+<div class="card">
+  <h2>Mantenimientos {{ periodo.anio }} ({{ mantenimientos|length }})</h2>
+  {% if mantenimientos %}
+  <div class="tabla-scroll">
+  <table class="tabla">
+    <tr><th>N°</th><th>Fecha</th><th>Móvil</th><th>Tipo y motivo</th><th class="n">Bomberos</th></tr>
+    {% for m in mantenimientos %}
+    <tr>
+      <td><a class="numero" href="{% url 'detalle_mantenimiento' m.pk %}">{{ m.numero_correlativo }}/{{ m.anio }}</a></td>
+      <td>{{ m.fecha|date:"d/m/Y" }}</td>
+      <td>{{ m.que }}</td>
+      <td>{{ m.get_tipo_display }}{% if m.motivo %} · {{ m.motivo }}{% endif %}</td>
+      <td class="n">{{ m.cantidad }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% else %}<p class="vacio">No hay mantenimientos en {{ periodo.anio }}.</p>{% endif %}
+</div>
+
+{% else %}
+<div class="card">
+  <h2>Capacitaciones {{ periodo.anio }} ({{ capacitaciones|length }})</h2>
+  {% if capacitaciones %}
+  <div class="tabla-scroll">
+  <table class="tabla">
+    <tr><th>N°</th><th>Fecha</th><th>Tema</th><th>Tipo</th><th class="n">Asistentes</th></tr>
+    {% for c in capacitaciones %}
+    <tr>
+      <td><a class="numero" href="{% url 'detalle_capacitacion' c.pk %}">{{ c.numero_correlativo }}/{{ c.anio }}</a></td>
+      <td>{{ c.fecha|date:"d/m/Y" }}</td>
+      <td>{{ c.tema }}</td>
+      <td>{{ c.get_modalidad_display }} · {{ c.get_sentido_display }}</td>
+      <td class="n">{{ c.cantidad }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% else %}<p class="vacio">No hay capacitaciones en {{ periodo.anio }}.</p>{% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Ordenar la tabla de bomberos tocando el título de una columna (de mayor a menor; otra vez, al revés).
+  (function () {
+    var tabla = document.querySelector(".tabla-adaptable");
+    if (!tabla) return;
+    var titulos = Array.from(tabla.querySelectorAll("tr:first-child th"));
+    // "—" (sin número) va siempre al final.
+    function valor(fila, i) {
+      var texto = fila.children[i].textContent.trim();
+      if (texto === "—" || texto === "") return null;
+      var numero = parseFloat(texto.replace(",", "."));
+      return isNaN(numero) ? texto.toLowerCase() : numero;
+    }
+    titulos.forEach(function (th, i) {
+      var boton = document.createElement("button");
+      boton.type = "button";
+      boton.textContent = th.textContent;
+      th.textContent = "";
+      th.appendChild(boton);
+      boton.addEventListener("click", function () {
+        // Primer toque: N°, nombre y rango de menor a mayor; las cifras, de mayor a menor.
+        var actual = th.getAttribute("aria-sort");
+        var nuevo = actual ? (actual === "ascending" ? "descending" : "ascending") : (i < 3 ? "ascending" : "descending");
+        titulos.forEach(function (otro) { otro.removeAttribute("aria-sort"); });
+        th.setAttribute("aria-sort", nuevo);
+        var signo = nuevo === "descending" ? -1 : 1;
+        var cuerpo = tabla.tBodies[0];
+        var total = cuerpo.querySelector("tr.total");
+        Array.from(cuerpo.rows)
+          .filter(function (f) { return !f.querySelector("th") && f !== total; })
+          .sort(function (a, b) {
+            var x = valor(a, i), y = valor(b, i);
+            if (x === null || y === null) return (x === null) - (y === null);
+            return signo * (x < y ? -1 : x > y ? 1 : 0);
+          })
+          .forEach(function (f) { cuerpo.insertBefore(f, total); });
+      });
+    });
+  })();
+</script>
+{% endblock %}

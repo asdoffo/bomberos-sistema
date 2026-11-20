@@ -1,0 +1,16 @@
+{# Un campo de formulario. Uso: include con campo=form.x #}
+{% with tipo=campo.widget_type %}
+<div class="{% if tipo == 'checkbox' %}campo-check{% elif tipo == 'textarea' %}campo-ancho{% elif tipo == 'radioselect' %}campo-ancho opciones-{{ campo.name }}{% endif %}{% if campo.errors %} tiene-error{% endif %}">
+  {% if tipo == 'checkbox' %}
+    <label>{{ campo }} {{ campo.label }}</label>
+  {% elif tipo == 'radioselect' %}
+    <label>{{ campo.label }}</label>
+    {{ campo }}
+  {% else %}
+    <label for="{{ campo.id_for_label }}">{{ campo.label }}{% if campo.field.required %} <span style="color:var(--rojo)">*</span>{% endif %}</label>
+    {{ campo }}
+  {% endif %}
+  {% if campo.help_text %}<div class="ayuda">{{ campo.help_text }}</div>{% endif %}
+  {{ campo.errors }}
+</div>
+{% endwith %}

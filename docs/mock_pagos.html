@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pagos por actividades (mock)</title>
+<style>
+  :root { --rojo:#c0392b; --rojo-suave:#fdecea; --fondo:#f3f4f6; --texto:#1f2937; --gris:#6b7280; --borde:#e5e7eb; --azul:#2563eb; --azul-hoja:#1d76b8; --verde:#15803d; }
+  * { box-sizing:border-box; }
+  body { font-family:system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background:var(--fondo); color:var(--texto); margin:0; padding:1rem; line-height:1.45; }
+  h1 { color:var(--rojo); font-size:1.35rem; margin:0 0 .2rem 0; }
+  h2 { font-size:1.05rem; margin:0 0 .6rem 0; }
+  .contenedor { max-width:1100px; margin:0 auto; }
+  .card { background:#fff; padding:1rem 1.2rem; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.08); border:1px solid var(--borde); margin-bottom:1rem; }
+  .btn { display:inline-block; background:var(--rojo); color:#fff; border:0; padding:.5rem .9rem; border-radius:8px; font-weight:600; font-size:.9rem; cursor:pointer; text-decoration:none; font-family:inherit; }
+  .btn.gris { background:#e5e7eb; color:#111; } .btn.verde { background:var(--verde); } .btn.chico { padding:.25rem .55rem; font-size:.78rem; }
+  .acciones { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+  .ayuda { color:var(--gris); font-size:.85rem; }
+  .aviso-mock { max-width:1100px; margin:0 auto 1rem auto; background:#fef9c3; border:1px dashed #ca8a04; border-radius:8px; padding:.6rem .9rem; font-size:.85rem; }
+  .pestanas { display:flex; gap:.3rem; margin-top:.5rem; flex-wrap:wrap; }
+  .pestanas button { font:inherit; font-size:.85rem; padding:.35rem .8rem; border-radius:999px; border:1px solid #ca8a04; background:#fff; cursor:pointer; }
+  .pestanas button.activa { background:#ca8a04; color:#fff; }
+  .vista { display:none; } .vista.activa { display:block; }
+  label { display:block; font-size:.85rem; font-weight:600; margin:.6rem 0 .2rem 0; }
+  input, select { width:100%; font:inherit; padding:.45rem .55rem; border:1px solid #cbd5e1; border-radius:8px; background:#fff; }
+  .filtros { display:grid; grid-template-columns:repeat(3, 1fr) auto; gap:.5rem; align-items:end; margin-top:.8rem; }
+  .filtros label { margin-top:0; }
+
+  .resumen { display:grid; grid-template-columns:repeat(4, 1fr); gap:.6rem; margin-bottom:1rem; }
+  .dato { background:#fff; border:1px solid var(--borde); border-radius:10px; padding:.6rem .8rem; }
+  .dato b { display:block; font-size:1.4rem; line-height:1.15; font-variant-numeric:tabular-nums; } .dato span { font-size:.8rem; color:var(--gris); }
+
+  .tabla-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.88rem; }
+  th, td { padding:.45rem .5rem; border-bottom:1px solid var(--borde); text-align:left; vertical-align:top; }
+  th { font-size:.78rem; text-transform:uppercase; letter-spacing:.03em; color:#4b5563; background:#f9fafb; white-space:nowrap; }
+  .num { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  tr.total td { font-weight:700; background:#f9fafb; }
+  tr.no-cobra td { color:#9ca3af; }
+  .pill { display:inline-block; font-size:.7rem; font-weight:700; padding:.05rem .45rem; border-radius:999px; background:#e5e7eb; color:#374151; white-space:nowrap; }
+  .pill.ok { background:#dcfce7; color:#14532d; } .pill.pend { background:#fef3c7; color:#78350f; } .pill.info { background:#e0e7ff; color:#3730a3; }
+  a.persona { font-weight:700; color:var(--azul); text-decoration:none; }
+  .estado-liq { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:.5rem .8rem; font-size:.88rem; margin-top:.8rem; }
+  .nota { background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:.55rem .75rem; font-size:.84rem; margin-top:.6rem; }
+  .nota.alerta { background:var(--rojo-suave); border-color:#fecaca; }
+
+  /* Hojas imprimibles (mismo estilo que la orden de entrega) */
+  .hoja { max-width:860px; margin:0 auto; background:#fff; padding:1.2rem 1.5rem; font-family:Arial, Helvetica, sans-serif; color:#111; }
+  .membrete { display:flex; gap:1rem; align-items:center; border-bottom:3px solid var(--azul-hoja); padding-bottom:.5rem; }
+  .membrete img { width:72px; height:72px; object-fit:contain; } .membrete .cuartel { font-size:1.3rem; font-weight:800; line-height:1.1; }
+  .membrete .datos { font-size:.8rem; }
+  .fila-titulo { display:flex; gap:.8rem; margin:.8rem 0; flex-wrap:wrap; }
+  .fila-titulo .titulo { background:var(--azul-hoja); color:#fff; font-weight:800; font-size:1.2rem; padding:.4rem 1rem; border-radius:6px; flex:1; }
+  .fila-titulo .caja { border:1px solid #999; border-radius:6px; padding:.4rem .8rem; font-weight:700; display:flex; align-items:center; }
+  .hoja table { font-size:.85rem; } .hoja th, .hoja td { border:1px solid #bbb; }
+  .hoja td.firma { width:9rem; }
+  .marco { border:1px solid #999; border-radius:6px; padding:.6rem .8rem; margin-bottom:.7rem; font-size:.92rem; }
+  .sello { border:2px solid var(--verde); border-radius:6px; padding:.4rem .6rem; font-size:.8rem; margin-top:.8rem; display:inline-block; }
+  .sello .codigo { font-family:Consolas, monospace; background:#f0fdf4; padding:0 .3rem; border-radius:4px; }
+  .linea-firma { margin-top:2rem; border-top:1px solid #111; padding-top:.2rem; font-size:.75rem; width:16rem; }
+  .dos { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; align-items:end; }
+
+  @media (max-width:900px) { .resumen { grid-template-columns:1fr 1fr; } .filtros { grid-template-columns:1fr 1fr; } }
+  @media (max-width:520px) { body { padding:.5rem; } .filtros, .dos { grid-template-columns:1fr; } .hoja { padding:.8rem; } }
+  @media print {
+    @page { size:A4; margin:10mm; }
+    body { background:#fff; padding:0; }
+    .aviso-mock, .vista:not(.activa), .solo-pantalla { display:none !important; }
+    .hoja { padding:0; max-width:none; }
+    .fila-titulo .titulo, .sello .codigo { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+</style>
+</head>
+<body>
+
+<div class="aviso-mock">
+  <b>Mock para corregir</b>: datos y montos de ejemplo (las sumas cierran). Pantallas:
+  <div class="pestanas">
+    <button type="button" class="activa" data-vista="resumen">1. Resumen del mes</button>
+    <button type="button" data-vista="detalle">2. Detalle de un integrante</button>
+    <button type="button" data-vista="tarifas">3. Tarifas</button>
+    <button type="button" data-vista="capacitacion">4. Monto en la capacitación</button>
+    <button type="button" data-vista="planilla">5. Planilla de pago</button>
+    <button type="button" data-vista="recibo">6. Recibo</button>
+  </div>
+</div>
+
+<div class="contenedor">
+
+<!-- ================= 1. RESUMEN ================= -->
+<section class="vista activa" id="resumen">
+  <div class="card">
+    <div class="acciones" style="justify-content:space-between;">
+      <div><h1>Pagos por actividades</h1><div class="ayuda">Lo que debe cobrar cada integrante por las participaciones marcadas «cobró». Lo ven Tesorería y Estadística (Estadística, solo lectura).</div></div>
+      <div class="acciones"><a class="btn gris" href="#" data-ir="tarifas">Tarifas</a><a class="btn gris" href="#">Exportar a Excel</a><a class="btn gris" href="#" data-ir="planilla">Planilla de pago</a></div>
+    </div>
+    <div class="filtros">
+      <div><label>Liquidación</label><select><option>Octubre 2026</option><option>Noviembre 2026 (en curso)</option><option>Septiembre 2026</option></select></div>
+      <div><label>Actividad</label><select><option>Todas</option><option>05 · Mantenimiento / tareas generales</option><option>Capacitaciones</option></select></div>
+      <div><label>Estado del pago</label><select><option>Todos</option><option>Pendiente</option><option>Pagado</option></select></div>
+      <div><button class="btn gris" type="button">Ver</button></div>
+    </div>
+    <div class="estado-liq">
+      <span class="pill ok">CERRADA</span>
+      Octubre 2026 · cerró Acosta, Marina (Tesorería) el 03/11/2026 · firma <code>8E21C4A0F7</code> · los montos ya no cambian.
+      <span class="ayuda">Faltan pagar 2 de 6.</span>
+    </div>
+  </div>
+
+  <div class="resumen">
+    <div class="dato"><b>$ 182.000</b><span>a pagar en octubre</span></div>
+    <div class="dato"><b>6</b><span>integrantes cobran</span></div>
+    <div class="dato"><b>25</b><span>participaciones cobradas (16 salidas, 9 capacitaciones)</span></div>
+    <div class="dato"><b>$ 50.000</b><span>pendiente de pago</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Por integrante</h2>
+    <div class="tabla-scroll">
+    <table>
+      <tr>
+        <th>N° mérito</th><th>Integrante</th>
+        <th class="num">Salidas</th><th class="num">$ salidas</th>
+        <th class="num">Capacit.</th><th class="num">$ capacit.</th>
+        <th class="num">Total</th><th>Pago</th><th></th>
+      </tr>
+      <tr><td>087</td><td><a class="persona" href="#" data-ir="detalle">Rodríguez, Pablo</a> <span class="ayuda">1102</span></td>
+        <td class="num">6</td><td class="num">$ 48.000</td><td class="num">2</td><td class="num">$ 12.000</td><td class="num"><b>$ 60.000</b></td>
+        <td><span class="pill ok">Pagado 05/11 · Recibo 34</span></td><td><a class="btn gris chico" href="#" data-ir="recibo">Recibo</a></td></tr>
+      <tr><td>112</td><td><a class="persona" href="#">Gómez, María Laura</a> <span class="ayuda">1188</span></td>
+        <td class="num">4</td><td class="num">$ 32.000</td><td class="num">1</td><td class="num">$ 6.000</td><td class="num"><b>$ 38.000</b></td>
+        <td><span class="pill ok">Pagado 05/11 · Recibo 35</span></td><td><a class="btn gris chico" href="#" data-ir="recibo">Recibo</a></td></tr>
+      <tr><td>118</td><td><a class="persona" href="#">Luna, Esteban</a> <span class="ayuda">1203</span></td>
+        <td class="num">3</td><td class="num">$ 24.000</td><td class="num">0</td><td class="num">—</td><td class="num"><b>$ 24.000</b></td>
+        <td><span class="pill pend">Pendiente</span></td><td><button class="btn verde chico" type="button">Registrar pago</button></td></tr>
+      <tr><td colspan="9" style="background:#f9fafb;">
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:end;font-size:.85rem;">
+          <b style="align-self:center;">Registrar pago a Luna, E. ($ 24.000):</b>
+          <div><label style="margin:0;">Forma</label><select style="width:auto;"><option>Cheque</option><option>Transferencia</option><option>Efectivo</option></select></div>
+          <div><label style="margin:0;">Cheque N°</label><input value="00045812" style="width:8rem;"></div>
+          <div><label style="margin:0;">Banco</label><input value="Banco de Córdoba" style="width:10rem;"></div>
+          <div><label style="margin:0;">Fecha</label><input type="date" value="2026-11-14" style="width:auto;"></div>
+          <button class="btn verde chico" type="button">Firmar y emitir recibo</button>
+        </div>
+      </td></tr>
+      <tr><td>041</td><td><a class="persona" href="#">Pérez, Juan Carlos</a> <span class="ayuda">1043</span></td>
+        <td class="num">2</td><td class="num">$ 16.000</td><td class="num">2</td><td class="num">$ 12.000</td><td class="num"><b>$ 28.000</b></td>
+        <td><span class="pill ok">Pagado 06/11 · Recibo 36</span></td><td><a class="btn gris chico" href="#" data-ir="recibo">Recibo</a></td></tr>
+      <tr><td>125</td><td><a class="persona" href="#">Sosa, Lucía</a> <span class="ayuda">1215</span></td>
+        <td class="num">1</td><td class="num">$ 8.000</td><td class="num">3</td><td class="num">$ 18.000</td><td class="num"><b>$ 26.000</b></td>
+        <td><span class="pill pend">Pendiente</span></td><td><button class="btn verde chico" type="button">Registrar pago</button></td></tr>
+      <tr><td>131</td><td><a class="persona" href="#">Medina, Diego</a> <span class="ayuda">1230</span></td>
+        <td class="num">0</td><td class="num">—</td><td class="num">1</td><td class="num">$ 6.000</td><td class="num"><b>$ 6.000</b></td>
+        <td><span class="pill ok">Pagado 06/11 · Recibo 37</span></td><td><a class="btn gris chico" href="#" data-ir="recibo">Recibo</a></td></tr>
+      <tr class="total"><td colspan="2">Total octubre</td><td class="num">16</td><td class="num">$ 128.000</td><td class="num">9</td><td class="num">$ 54.000</td><td class="num">$ 182.000</td><td colspan="2"></td></tr>
+    </table>
+    </div>
+    <div class="nota">ℹ Salidas: tarifa del tipo de intervención vigente el día del parte (igual para interviniente, apresto y chofer, convocado o en el cuartel). Capacitaciones: el monto fijado en cada capacitación. Al cerrar la liquidación los montos quedan guardados.</div>
+    <div class="nota alerta">⚠ 2 partes de octubre del tipo 05 todavía no están cerrados (78/2026 y 81/2026): sus participaciones van a entrar en la liquidación de noviembre.</div>
+  </div>
+</section>
+
+<!-- ================= 2. DETALLE ================= -->
+<section class="vista" id="detalle">
+  <div class="card">
+    <div class="acciones" style="justify-content:space-between;">
+      <div>
+        <div class="ayuda">Bombero · Legajo 1102 · N° de mérito 087/2026</div>
+        <h1>Rodríguez, Pablo — Octubre 2026</h1>
+        <span class="pill ok">Pagado el 05/11/2026 · transferencia · Recibo 34/2026</span>
+      </div>
+      <div class="acciones"><a class="btn gris" href="#" data-ir="recibo">Ver recibo</a><a class="btn gris" href="#" data-ir="resumen">Volver</a></div>
+    </div>
+  </div>
+
+  <div class="resumen">
+    <div class="dato"><b>$ 60.000</b><span>total octubre</span></div>
+    <div class="dato"><b>6 · $ 48.000</b><span>salidas cobradas</span></div>
+    <div class="dato"><b>2 · $ 12.000</b><span>capacitaciones cobradas</span></div>
+    <div class="dato"><b>$ 398.000</b><span>acumulado 2026 (10 meses)</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Detalle de participaciones</h2>
+    <div class="tabla-scroll">
+    <table>
+      <tr><th>Fecha</th><th>Actividad</th><th>Tipo</th><th>Participación</th><th class="num">Monto</th></tr>
+      <tr><td>02/10</td><td><a href="#">Parte 61/2026</a></td><td>05 · Mantenimiento / tareas generales</td><td>Interviniente</td><td class="num">$ 8.000</td></tr>
+      <tr><td>05/10</td><td><a href="#">Parte 63/2026</a></td><td>05 · Mantenimiento / tareas generales</td><td>Chofer</td><td class="num">$ 8.000</td></tr>
+      <tr><td>09/10</td><td><a href="#">Parte 66/2026</a></td><td>05 · Mantenimiento / tareas generales</td><td>Interviniente</td><td class="num">$ 8.000</td></tr>
+      <tr><td>14/10</td><td><a href="#">Capacitación 21/2026</a></td><td>Capacitación — Uso de equipos ERA</td><td>Asistente</td><td class="num">$ 6.000</td></tr>
+      <tr><td>18/10</td><td><a href="#">Parte 70/2026</a></td><td>05 · Mantenimiento / tareas generales</td><td>Apresto</td><td class="num">$ 8.000</td></tr>
+      <tr><td>22/10</td><td><a href="#">Parte 74/2026</a></td><td>05 · Mantenimiento / tareas generales</td><td>Interviniente</td><td class="num">$ 8.000</td></tr>
+      <tr><td>26/10</td><td><a href="#">Capacitación 24/2026</a></td><td>Capacitación — Rescate vehicular</td><td>Asistente</td><td class="num">$ 6.000</td></tr>
+      <tr><td>29/10</td><td><a href="#">Parte 79/2026</a></td><td>05 · Mantenimiento / tareas generales</td><td>Interviniente</td><td class="num">$ 8.000</td></tr>
+      <tr class="total"><td colspan="4">Total</td><td class="num">$ 60.000</td></tr>
+    </table>
+    </div>
+    <details style="margin-top:.7rem;">
+      <summary class="ayuda" style="cursor:pointer;">Participaciones de octubre que no se cobran (3)</summary>
+      <table style="margin-top:.4rem;">
+        <tr class="no-cobra"><td>11/10</td><td>Parte 67/2026</td><td>01 · Incendio</td><td>Interviniente</td><td>El tipo no se cobra</td></tr>
+        <tr class="no-cobra"><td>20/10</td><td>Parte 72/2026</td><td>02 · Accidentes</td><td>Apresto</td><td>El tipo no se cobra</td></tr>
+        <tr class="no-cobra"><td>24/10</td><td>Parte 76/2026</td><td>05 · Mantenimiento / tareas generales</td><td>Interviniente</td><td>No marcado «cobró»</td></tr>
+      </table>
+    </details>
+    <p class="ayuda" style="margin-bottom:0;">El bombero ve esta misma pantalla (solo la suya, con sus recibos) desde Mi perfil → Mis pagos.</p>
+  </div>
+</section>
+
+<!-- ================= 3. TARIFAS ================= -->
+<section class="vista" id="tarifas">
+  <div class="card">
+    <div class="acciones" style="justify-content:space-between;">
+      <div><h1>Tarifas de las intervenciones</h1><div class="ayuda">Cuánto se paga por cada participación cobrada, según el tipo de intervención. Cada cambio rige desde una fecha: lo anterior se sigue pagando con la tarifa vieja. Las capacitaciones no van acá: su monto se fija en cada capacitación.</div></div>
+      <div class="acciones"><a class="btn" href="#">+ Nueva tarifa</a><a class="btn gris" href="#" data-ir="resumen">Volver</a></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Vigentes hoy</h2>
+    <div class="tabla-scroll">
+    <table>
+      <tr><th>Tipo de intervención</th><th class="num">Monto por participación</th><th>Desde</th><th>Anteriores</th><th></th></tr>
+      <tr><td>05 · Mantenimiento / tareas generales</td><td class="num"><b>$ 8.000</b></td><td>01/10/2026</td><td class="ayuda">$ 7.000 (01/01 al 30/09)</td><td><button class="btn gris chico" type="button">Cambiar</button></td></tr>
+    </table>
+    </div>
+    <div class="nota alerta">⚠ Si se marca otro tipo como «se cobra» (por ejemplo 03 · Salvataje), necesita su tarifa: sin tarifa, sus participaciones aparecen como «sin tarifa» y no se puede cerrar la liquidación.</div>
+  </div>
+
+  <div class="card" style="max-width:520px;">
+    <h2>Nueva tarifa</h2>
+    <label>Tipo de intervención</label>
+    <select><option>05 · Mantenimiento / tareas generales</option></select>
+    <label>Monto por participación ($)</label>
+    <input value="9.000" inputmode="decimal">
+    <label>Rige desde</label>
+    <input type="date" value="2026-12-01">
+    <p class="ayuda">No puede ser anterior a una liquidación ya cerrada. Se firma con tu contraseña.</p>
+    <button class="btn" type="button">Guardar tarifa</button>
+  </div>
+</section>
+
+<!-- ================= 4. MONTO EN LA CAPACITACIÓN ================= -->
+<section class="vista" id="capacitacion">
+  <div class="card" style="max-width:720px;margin:0 auto;">
+    <div class="ayuda">Capacitación 24/2026 · formulario actual (fecha, días, instructor, asistentes…)</div>
+    <h1>Rescate vehicular</h1>
+    <div style="border:2px solid var(--azul);border-radius:10px;padding:.7rem .9rem;background:#eff6ff;margin-top:.6rem;">
+      <b>Pago a los asistentes</b>
+      <label>Monto por asistente que cobra ($)</label>
+      <input value="6.000" inputmode="decimal" style="max-width:220px;">
+      <p class="ayuda" style="margin:.4rem 0 0 0;">Se fija antes de la capacitación. Lo carga y lo cambia quien tiene el permiso del módulo de pagos (Tesorería); quien carga la capacitación lo ve pero no lo edita. Si está vacío, la columna «Cobró» de los asistentes no se puede tildar.</p>
+    </div>
+    <div class="ayuda" style="margin-top:.6rem;">Asistentes: grilla actual con «Cobró» por asistente.</div>
+  </div>
+</section>
+
+<!-- ================= 5. PLANILLA ================= -->
+<section class="vista" id="planilla">
+  <div class="card solo-pantalla"><div class="acciones"><button class="btn" type="button" onclick="window.print()">Descargar PDF / Imprimir</button><a class="btn gris" href="#" data-ir="resumen">Volver</a></div></div>
+  <div class="hoja">
+    <div class="membrete">
+      <img src="../partes/static/partes/escudo.jpg" alt="Escudo">
+      <div>
+        <div class="cuartel">Cuerpo de Bomberos Voluntarios de Villa María</div>
+        <div><b>Cte. Insp. Mayor B. V. Bautista Gianinetto</b></div>
+        <div class="datos">General Paz 358 - Villa María (Cba.) | (0353) 4533300 - 4533400 - 100</div>
+      </div>
+    </div>
+    <div class="fila-titulo">
+      <div class="titulo">PLANILLA DE PAGO POR ACTIVIDADES</div>
+      <div class="caja">OCTUBRE 2026</div>
+      <div class="caja">CERRADA 03/11/2026</div>
+    </div>
+    <table>
+      <tr><th>N° mérito</th><th>Apellido y nombre</th><th>Legajo</th><th class="num">Salidas</th><th class="num">Capacit.</th><th class="num">Total</th><th>Recibo</th></tr>
+      <tr><td>041</td><td>Pérez, Juan Carlos</td><td>1043</td><td class="num">2</td><td class="num">2</td><td class="num">$ 28.000</td><td>36/2026</td></tr>
+      <tr><td>087</td><td>Rodríguez, Pablo</td><td>1102</td><td class="num">6</td><td class="num">2</td><td class="num">$ 60.000</td><td>34/2026</td></tr>
+      <tr><td>112</td><td>Gómez, María Laura</td><td>1188</td><td class="num">4</td><td class="num">1</td><td class="num">$ 38.000</td><td>35/2026</td></tr>
+      <tr><td>118</td><td>Luna, Esteban</td><td>1203</td><td class="num">3</td><td class="num">0</td><td class="num">$ 24.000</td><td>pendiente</td></tr>
+      <tr><td>125</td><td>Sosa, Lucía</td><td>1215</td><td class="num">1</td><td class="num">3</td><td class="num">$ 26.000</td><td>pendiente</td></tr>
+      <tr><td>131</td><td>Medina, Diego</td><td>1230</td><td class="num">0</td><td class="num">1</td><td class="num">$ 6.000</td><td>37/2026</td></tr>
+      <tr class="total"><td colspan="3">TOTAL</td><td class="num">16</td><td class="num">9</td><td class="num">$ 182.000</td><td></td></tr>
+    </table>
+    <p style="font-size:.8rem;margin:.5rem 0 0 0;">Tarifa aplicada a las salidas: 05 Mantenimiento / tareas generales $ 8.000 por participación. Capacitaciones: monto fijado en cada una. El detalle de cada integrante está en el sistema.</p>
+    <div class="sello">
+      <b>CERRÓ LA LIQUIDACIÓN</b><br>
+      Acosta, Marina · Legajo 1150 · Tesorería<br>
+      03/11/2026 09:12 hs · Firma: <span class="codigo">8E21C4A0F7</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 6. RECIBO ================= -->
+<section class="vista" id="recibo">
+  <div class="card solo-pantalla"><div class="acciones"><button class="btn" type="button" onclick="window.print()">Descargar PDF / Imprimir</button><a class="btn gris" href="#" data-ir="resumen">Volver</a></div>
+    <p class="ayuda" style="margin-bottom:0;">El recibo queda guardado como constancia en el sistema. El integrante lo ve en Mis pagos; si se imprime, puede firmarse en papel.</p></div>
+  <div class="hoja">
+    <div class="membrete">
+      <img src="../partes/static/partes/escudo.jpg" alt="Escudo">
+      <div>
+        <div class="cuartel">Cuerpo de Bomberos Voluntarios de Villa María</div>
+        <div><b>Cte. Insp. Mayor B. V. Bautista Gianinetto</b></div>
+        <div class="datos">General Paz 358 - Villa María (Cba.) | (0353) 4533300 - 4533400 - 100</div>
+      </div>
+    </div>
+    <div class="fila-titulo">
+      <div class="titulo">RECIBO DE PAGO POR ACTIVIDADES</div>
+      <div class="caja">N° 00000034 / 2026</div>
+      <div class="caja">05/11/2026</div>
+    </div>
+    <div class="marco">
+      Recibí del Cuerpo de Bomberos Voluntarios de Villa María la suma de <b>$ 60.000 (pesos sesenta mil)</b>
+      en concepto de participaciones en actividades del mes de <b>octubre 2026</b>, pagada por <b>transferencia</b>.
+    </div>
+    <div class="marco">
+      <b>Integrante:</b> Rodríguez, Pablo · Legajo 1102 · N° de mérito 087/2026 · Bombero
+    </div>
+    <table>
+      <tr><th>Concepto</th><th class="num">Cant.</th><th class="num">Unitario</th><th class="num">Subtotal</th></tr>
+      <tr><td>05 · Mantenimiento / tareas generales (partes 61, 63, 66, 70, 74 y 79/2026)</td><td class="num">6</td><td class="num">$ 8.000</td><td class="num">$ 48.000</td></tr>
+      <tr><td>Capacitación 21/2026 — Uso de equipos ERA</td><td class="num">1</td><td class="num">$ 6.000</td><td class="num">$ 6.000</td></tr>
+      <tr><td>Capacitación 24/2026 — Rescate vehicular</td><td class="num">1</td><td class="num">$ 6.000</td><td class="num">$ 6.000</td></tr>
+      <tr class="total"><td colspan="3">TOTAL</td><td class="num">$ 60.000</td></tr>
+    </table>
+    <div class="dos">
+      <div class="sello">
+        <b>PAGÓ</b><br>
+        Acosta, Marina · Legajo 1150 · Tesorería<br>
+        05/11/2026 18:40 hs · Firma: <span class="codigo">3C9B07E15D</span>
+      </div>
+      <div><div class="linea-firma">Firma del integrante (si se imprime)</div></div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+  function ir(vista) {
+    document.querySelectorAll(".vista").forEach(v => v.classList.toggle("activa", v.id === vista));
+    document.querySelectorAll(".pestanas button").forEach(b => b.classList.toggle("activa", b.dataset.vista === vista));
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll(".pestanas button").forEach(b => b.addEventListener("click", () => ir(b.dataset.vista)));
+  document.querySelectorAll("[data-ir]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); ir(el.dataset.ir); }));
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+{% extends "partes/base.html" %}
+{% load static %}
+
+{% block titulo %}Ingresar — Bomberos Villa María{% endblock %}
+
+{% block estilos %}
+  body {
+    min-height:100vh;
+    /* Si existe partes/static/partes/login.jpg (foto del cuartel) se ve detrás del degradado. */
+    background:
+      linear-gradient(160deg, rgba(150,45,34,0.92) 0%, rgba(31,41,55,0.88) 100%),
+      url("{% static 'partes/login.jpg' %}") center / cover no-repeat,
+      #7b241c;
+  }
+  main { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:1rem; }
+  .login { width:100%; max-width:380px; }
+  .encabezado { text-align:center; color:#fff; margin-bottom:1.2rem; }
+  .escudo { font-size:1.6rem; font-weight:800; letter-spacing:0.08em; line-height:1; filter:drop-shadow(0 4px 8px rgba(0,0,0,0.3)); }
+  .encabezado h1 { color:#fff; font-size:1.35rem; margin:0.5rem 0 0.1rem 0; }
+  .encabezado p { margin:0; opacity:0.85; font-size:0.9rem; }
+  .login .card { padding:1.6rem; box-shadow:0 10px 30px rgba(0,0,0,0.3); border:0; }
+  .login .btn { width:100%; margin-top:1.3rem; font-size:1rem; }
+  .ver-clave { display:flex; gap:0.4rem; }
+  .ver-clave input { flex:1; }
+  .ver-clave button { margin-top:0.25rem; border:1px solid #d1d5db; background:#f9fafb; border-radius:8px; padding:0 0.7rem; cursor:pointer; }
+  .pie-login { text-align:center; color:#fff; opacity:0.75; font-size:0.78rem; margin-top:1rem; }
+{% endblock %}
+
+{% block contenido %}
+<div class="login">
+  <div class="encabezado">
+    <div class="escudo">CBVVM</div>
+    <h1>Bomberos Voluntarios</h1>
+    <p>Villa María · Sistema de partes</p>
+  </div>
+
+  <div class="card">
+    {% if form.errors %}<div class="msg error"><span>Usuario o contraseña incorrectos.</span></div>{% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <label for="id_username">Usuario</label>
+      <input type="text" name="username" id="id_username" autocomplete="username" autocapitalize="none"
+             value="{{ form.username.value|default:'' }}" required autofocus>
+      <label for="id_password">Contraseña</label>
+      <div class="ver-clave">
+        <input type="password" name="password" id="id_password" autocomplete="current-password" required>
+        <button type="button" aria-label="Mostrar contraseña"
+                onclick="var c=document.getElementById('id_password');c.type=c.type==='password'?'text':'password';this.textContent=c.type==='password'?'Ver':'Ocultar';">Ver</button>
+      </div>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit" class="btn">Ingresar</button>
+    </form>
+  </div>
+  <p class="pie-login">Por seguridad, la sesión se cierra sola a las 6 horas (cambio de guardia).</p>
+</div>
+{% endblock %}

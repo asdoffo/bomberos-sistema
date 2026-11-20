@@ -1,0 +1,12 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}Contraseña cambiada — Bomberos Villa María{% endblock %}
+
+{% block contenido %}
+<div class="card" style="max-width:560px;">
+  <h1>Contraseña cambiada</h1>
+  <p>Listo: desde ahora entrás con la contraseña nueva.</p>
+  <div class="acciones"><a class="btn" href="{% url 'menu' %}">Volver al inicio</a>
+    <a class="btn gris" href="{% url 'mi_perfil' %}">Mi perfil</a></div>
+</div>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}Negativa a la atención — {{ n.nombre_firmante }}{% endblock %}
+
+{% block estilos %}
+  .hoja { max-width:780px; }
+  .banda { background:#c0392b; color:#fff; text-align:center; font-weight:bold; padding:0.35rem; margin:1.2rem 0 0.8rem 0; letter-spacing:0.03em; }
+  .texto { font-size:0.95rem; line-height:1.5; text-align:justify; }
+  .firmas { display:grid; grid-template-columns:1fr 1fr; gap:2rem; margin-top:0.5rem; }
+  .linea { border-bottom:1px solid #555; height:2.8rem; }
+  .pie { font-size:0.85rem; margin-top:0.3rem; }
+  .pie b { display:inline-block; min-width:5.5rem; }
+  .solo-pantalla { margin-bottom:1rem; }
+  @media print {
+    body { background:#fff; padding:0; }
+    .topbar, .msg, .solo-pantalla { display:none !important; }
+    .card { box-shadow:none; padding:0; }
+    .banda { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+  @media (max-width:600px) { .firmas { grid-template-columns:1fr; } }
+{% endblock %}
+
+{% block contenido %}
+<div class="card hoja">
+  <div class="solo-pantalla acciones" style="margin-top:0;">
+    <button class="btn" onclick="window.print()">Imprimir</button>
+    {% if n.parte %}<a class="btn secundario" href="{% url 'detalle_parte' n.parte.pk %}">Volver al parte</a>{% endif %}
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:0.5rem;">
+    <div>
+      <div style="font-weight:bold;font-size:1.1rem;">Cuerpo de Bomberos Voluntarios de Villa María</div>
+      <div class="ayuda">Constancia de negativa a la atención y/o traslado</div>
+    </div>
+    <div style="text-align:right;font-size:0.9rem;">
+      Fecha: <b>{{ n.fecha|date:"d/m/Y" }}</b><br>
+      {% if n.parte %}Parte N° <b>{{ n.parte.numero_correlativo }}/{{ n.parte.anio }}</b>{% endif %}
+    </div>
+  </div>
+
+  <div class="banda">DECLARACIÓN</div>
+  <p class="texto">
+    Quien suscribe, <b>{{ n.nombre_firmante }}</b>, DNI <b>{{ n.dni_firmante }}</b>{% if n.edad_firmante %}, de {{ n.edad_firmante }} años{% endif %}{% if n.domicilio_firmante %}, con domicilio en {{ n.domicilio_firmante }}{% endif %},
+    en carácter de <b>{{ n.get_tipo_firmante_display|lower }}</b>{% if n.relacion_paciente %} ({{ n.relacion_paciente }} del paciente){% endif %}{% if n.damnificado and n.tipo_firmante != "paciente" %} de <b>{{ n.damnificado.apellido_nombre }}</b>{% endif %},
+    manifiesta que <b>rechaza la atención y/o el traslado</b> ofrecidos por el personal del Cuerpo de
+    Bomberos Voluntarios de Villa María, habiendo sido informado/a de los riesgos que esta decisión
+    puede implicar para la salud, y asume la responsabilidad que de ella se derive.
+  </p>
+
+  <div class="banda">ATENDIÓ</div>
+  <div class="firmas">
+    <div>
+      <div class="linea"></div>
+      <div class="pie"><b>Nombre:</b> {{ n.atendio.nombre|default:"" }} {{ n.atendio.apellido|default:"" }}</div>
+      <div class="pie"><b>Matrícula:</b> {{ n.matricula_atendio|default:"______________" }}</div>
+    </div>
+  </div>
+
+  <div class="banda">PACIENTE / RESPONSABLE / TESTIGO</div>
+  <div class="firmas">
+    <div>
+      <div class="linea"></div>
+      <div class="pie"><b>Firma de:</b> {{ n.nombre_firmante }} ({{ n.get_tipo_firmante_display }})</div>
+      <div class="pie"><b>Documento:</b> {{ n.dni_firmante }}</div>
+      <div class="pie"><b>Vínculo:</b> {{ n.relacion_paciente|default:"—" }}</div>
+    </div>
+    <div>
+      <div class="linea"></div>
+      <div class="pie"><b>Testigo:</b> {{ n.testigo_nombre|default:"______________________" }}</div>
+      <div class="pie"><b>Documento:</b> {{ n.testigo_dni|default:"______________" }}</div>
+    </div>
+  </div>
+
+  <p class="ayuda solo-pantalla" style="margin-top:1.5rem;">
+    Texto de la declaración en borrador: validarlo con el cuartel antes de usarlo en servicio.
+  </p>
+</div>
+{% endblock %}

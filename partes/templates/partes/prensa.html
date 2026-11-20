@@ -1,0 +1,30 @@
+{% extends "partes/base.html" %}
+{% block titulo %}Resumen de prensa — Bomberos Villa María{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:820px;">
+  <h1>Resumen de prensa</h1>
+  <div class="acciones" style="margin-top:0;align-items:center;">
+    <a class="btn gris chico" href="?fecha={{ anterior }}">← Día anterior</a>
+    <b>{{ dia|date:"l d/m/Y"|capfirst }}</b>
+    {% if not es_hoy %}<a class="btn gris chico" href="?fecha={{ siguiente }}">Día siguiente →</a><a class="btn gris chico" href="?">Hoy</a>{% endif %}
+  </div>
+  <p class="ayuda">Las salidas del día, listas para mandar al grupo de periodistas. <b>No lleva nombres, DNI ni patentes.</b>
+    Se arma con los partes cargados (sexo, edad y lesión de los damnificados): revisalo y retocalo antes de mandarlo.</p>
+  <textarea id="texto-prensa" rows="22" style="font-family:ui-monospace, Consolas, monospace;">{{ texto }}</textarea>
+  <div class="acciones">
+    <button type="button" class="btn" id="copiar-prensa">Copiar para WhatsApp</button>
+    <span class="ayuda" id="copiado" role="status"></span>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.getElementById("copiar-prensa").addEventListener("click", function () {
+    var caja = document.getElementById("texto-prensa");
+    caja.select();
+    var listo = function () { document.getElementById("copiado").textContent = "Copiado: pegalo en el grupo de WhatsApp."; };
+    if (navigator.clipboard) navigator.clipboard.writeText(caja.value).then(listo, function () { document.execCommand("copy"); listo(); });
+    else { document.execCommand("copy"); listo(); }
+  });
+</script>
+{% endblock %}

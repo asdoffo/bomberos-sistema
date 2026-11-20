@@ -1,0 +1,67 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}Números {{ periodo.anio }} — Bomberos Villa María{% endblock %}
+
+{% block estilos %}
+  table.tabla { width:100%; border-collapse:collapse; font-size:0.92rem; }
+  .tabla th, .tabla td { text-align:left; padding:0.35rem 0.4rem; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
+  .tabla th { font-size:0.72rem; color:var(--gris); text-transform:uppercase; }
+  .tabla input[type=text] { width:4.5rem !important; margin:0 !important; text-align:center; font-weight:700; }
+  .tabla .errorlist { margin:0.2rem 0 0 0; }
+  .buscar-tabla { max-width:22rem; }
+{% endblock %}
+
+{% block contenido %}
+<p style="margin:0 0 0.6rem 0;"><a href="{% url 'tomo' periodo.anio %}">Volver al tomo {{ periodo.anio }}</a></p>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="card">
+    <h1>Números de mérito {{ periodo.anio }}</h1>
+    <p class="ayuda" style="margin:0;">Escribí el número de cada bombero (del 001 al 999). Si todavía no se asignó ninguno este año,
+      viene propuesto el del año anterior. Para dar de baja a alguien, entrá a su ficha (la baja se firma).
+      {% if perms.partes.add_integrante %}Para los que entran, <a href="{% url 'nuevo_bombero' %}">dá de alta al integrante</a> y volvé a esta pantalla.{% endif %}</p>
+    {% if form.non_field_errors %}<div class="msg error" style="margin-top:0.8rem;">{{ form.non_field_errors }}</div>{% endif %}
+    <input type="search" id="buscar-tabla" class="buscar-tabla" style="margin-top:0.8rem;" autocomplete="off"
+           placeholder="Buscar por apellido" aria-label="Buscar bombero por apellido">
+  </div>
+
+  <div class="card">
+    <div class="tabla-scroll">
+    <table class="tabla" id="tabla-numeros">
+      <tr><th>N° {{ periodo.anio }}</th><th>N° {{ periodo.anio|add:"-1" }}</th><th>Apellido y nombre</th><th>Rango</th><th>Estado</th></tr>
+      {% for f in form.filas %}
+      <tr data-buscar="{{ f.integrante.apellido|lower }} {{ f.integrante.nombre|lower }}">
+        <td>{{ f.numero }}{{ f.numero.errors }}</td>
+        <td class="ayuda">{{ f.anterior|stringformat:"03d"|default:"—" }}</td>
+        <td><a href="{% url 'ficha_bombero' f.integrante.pk %}">{{ f.integrante.apellido }}, {{ f.integrante.nombre }}</a></td>
+        <td>{{ f.integrante.rango }}</td>
+        <td>{{ f.integrante.estado }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    </div>
+  </div>
+
+  <div class="barra-guardar">
+    <button type="submit" class="btn">Guardar números</button>
+    <a class="btn gris" href="{% url 'tomo' periodo.anio %}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Filtra la tabla por apellido o nombre (sin tildes).
+  (function () {
+    var buscador = document.getElementById("buscar-tabla");
+    var filas = Array.from(document.querySelectorAll("#tabla-numeros tr[data-buscar]"));
+    function clave(t) { return t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+    buscador.addEventListener("input", function () {
+      var texto = clave(buscador.value.trim());
+      filas.forEach(function (f) { f.hidden = texto && clave(f.dataset.buscar).indexOf(texto) === -1; });
+    });
+    buscador.addEventListener("keydown", function (e) { if (e.key === "Enter") e.preventDefault(); });
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,3 @@
+Foto de fondo del login: guardar aqui un archivo llamado login.jpg
+(idealmente una foto del cuartel o de una salida, horizontal, de menos de 500 KB).
+Si no existe, el login muestra solo el degradado rojo.

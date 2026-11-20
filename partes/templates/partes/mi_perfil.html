@@ -1,0 +1,12 @@
+{% extends "partes/base.html" %}
+{% comment %}Solo para un usuario sin integrante vinculado. El perfil en sí es ficha_bombero.html.{% endcomment %}
+
+{% block titulo %}Mi perfil — Bomberos Villa María{% endblock %}
+
+{% block contenido %}
+<div class="card">
+  <h1>Mi perfil</h1>
+  <p class="vacio">Tu usuario no está vinculado a ningún integrante. Pedile a Estadística que te asocie.</p>
+  <div class="acciones"><a class="btn gris" href="{% url 'password_change' %}">Cambiar contraseña</a></div>
+</div>
+{% endblock %}

@@ -1,0 +1,160 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}{% if titulo %}{{ titulo }}{% else %}{% with hojas.0.parte as p %}Control de salida {{ p.numero_correlativo }}/{{ p.anio }}{% endwith %}{% endif %}{% endblock %}
+
+{% block estilos %}
+  .hoja { max-width:820px; margin:0 auto 1.2rem auto; font-size:0.9rem; }
+  .hoja h1 { font-size:1.15rem; margin:0; }
+  .cabecera-hoja { display:flex; justify-content:space-between; align-items:flex-end; gap:0.5rem; flex-wrap:wrap;
+                   border-bottom:2px solid var(--rojo); padding-bottom:0.4rem; margin-bottom:0.6rem; }
+  .cabecera-hoja .cuartel { font-weight:700; }
+  .banda { background:var(--rojo); color:#fff; font-weight:700; padding:0.2rem 0.5rem; margin:0.8rem 0 0.4rem 0;
+           font-size:0.82rem; letter-spacing:0.03em; text-transform:uppercase; }
+  .renglones { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:0.15rem 1rem; }
+  .renglones div { border-bottom:1px dotted #bbb; padding:0.15rem 0; }
+  .renglones span { color:var(--gris); font-size:0.78rem; margin-right:0.3rem; }
+  .hoja table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+  .hoja th, .hoja td { border:1px solid #ccc; padding:0.2rem 0.35rem; text-align:left; vertical-align:top; }
+  .hoja th { background:#f3f4f6; font-size:0.75rem; }
+  .sello-hoja { margin-top:0.8rem; border:2px solid var(--rojo); border-radius:6px; padding:0.4rem 0.6rem; font-size:0.85rem; }
+  .solo-pantalla { max-width:820px; margin:0 auto 1rem auto; }
+  @media print {
+    @page { size:A4; margin:12mm; }
+    body { background:#fff !important; }
+    .lateral, .barra-movil, .msg, .solo-pantalla, noscript { display:none !important; }
+    .con-lateral main, main { margin:0 !important; padding:0 !important; max-width:none !important; }
+    .card { box-shadow:none !important; border:0 !important; padding:0 !important; }
+    .hoja { break-after:page; max-width:none; }
+    .hoja:last-child { break-after:auto; }
+    .banda, .hoja th { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .banda, .renglones div, tr { break-inside:avoid; }
+  }
+{% endblock %}
+
+{% block contenido %}
+<div class="solo-pantalla card">
+  <div class="acciones" style="margin-top:0;">
+    <button type="button" class="btn" onclick="window.print()">Descargar PDF / Imprimir</button>
+    {% with hojas.0.parte.anio as del_tomo %}<a class="btn gris" href="{% url 'tomo' anio|default:del_tomo %}?ver=partes">Volver al tomo</a>{% endwith %}
+  </div>
+  <p class="ayuda" style="margin-bottom:0;">En la ventana que se abre, elegí <b>Guardar como PDF</b> como impresora para descargarlo.
+    {% if titulo %}{{ hojas|length }} parte{{ hojas|length|pluralize }}, uno por hoja.{% endif %}</p>
+</div>
+
+{% for h in hojas %}{% with p=h.parte %}
+<div class="card hoja">
+  <div class="cabecera-hoja">
+    <div>
+      <div class="cuartel">Cuerpo de Bomberos Voluntarios de Villa María</div>
+      <h1>Control de salida N° {{ p.numero_correlativo }}/{{ p.anio }}</h1>
+    </div>
+    <div style="text-align:right;">
+      Fecha <b>{{ p.fecha|date:"d/m/Y" }}</b> · Llamada <b>{{ p.hora_llamada|time:"H:i"|default:"—" }}</b> Hs.<br>
+      Estado: <b>{{ p.estado_parte }}</b>
+    </div>
+  </div>
+
+  <div class="banda">Llamada</div>
+  <div class="renglones">
+    <div><span>Llamado</span>{{ p.get_medio_llamado_display }}{% if p.telefono_origen %} · TE {{ p.telefono_origen }}{% endif %}</div>
+    {% if p.nombre_llamante %}<div><span>Quién llama</span>{{ p.nombre_llamante }}</div>{% endif %}
+    <div><span>Toque de sirena</span>{{ p.toque_sirena|yesno:"Sí,No" }}</div>
+    <div><span>Personal de guardia</span>{% if h.merito_guardia %}{{ h.merito_guardia|stringformat:"03d" }} — {% endif %}{{ p.guardia.apellido }}, {{ p.guardia.nombre }}</div>
+    <div><span>Personal E-100</span>{{ p.personal_e100|default:"—" }}</div>
+    <div><span>Autorizó</span>{{ p.autorizo|default:"—" }}</div>
+  </div>
+
+  <div class="banda">Tipo y ubicación del siniestro</div>
+  <div class="renglones">
+    <div><span>Tipo</span>{{ p.tipo }}</div>
+    <div><span>Motivo</span>{{ p.motivo }}</div>
+    <div><span>Ubicación</span>{{ p.ubicacion }}</div>
+    <div><span>Barrio</span>{{ p.barrio|default:"—" }}</div>
+    {% if p.referencias %}<div><span>Referencias</span>{{ p.referencias }}</div>{% endif %}
+  </div>
+
+  <div class="banda">Registro de movimiento de la unidad</div>
+  {% if p.unidad_salio %}
+  <div class="renglones">
+    <div><span>U N°</span>{{ p.vehiculo|default:"—" }}</div>
+    <div><span>Salida / llegada / regreso Hs.</span>{{ p.hora_salida|time:"H:i"|default:"—" }} / {{ p.hora_llegada|time:"H:i"|default:"—" }} / {{ p.hora_regreso|time:"H:i"|default:"—" }}</div>
+    <div><span>Tiempo de salida</span>{{ p.minutos_despacho|default_if_none:"—" }} min.</div>
+    <div><span>Respuesta total</span>{{ p.minutos_respuesta|default_if_none:"—" }} min.</div>
+    <div><span>Km regreso</span>{{ p.km_regreso|default:"—" }}</div>
+    <div><span>Combustible</span>{{ p.get_combustible_nivel_display|default:"—" }}{% if p.carga_combustible %} · cargó {{ p.litros }} l (${{ p.pesos }}){% endif %}</div>
+    <div><span>Se solicitó apoyo</span>{% if p.se_solicito_apoyo %}Sí — unidad {{ p.unidad_apoyo_numero }}{% else %}No{% endif %}</div>
+  </div>
+  {% else %}<p>La unidad no salió (salida cancelada).</p>{% endif %}
+
+  <div class="banda">Personal que concurrió</div>
+  {% if h.personal %}
+  <table>
+    <tr><th>N°</th><th>Apellido y nombre</th><th>Rango</th><th>Participación</th></tr>
+    {% for pp, merito in h.personal %}
+    <tr><td>{{ merito|stringformat:"03d"|default:"—" }}</td><td>{{ pp.integrante.apellido }}, {{ pp.integrante.nombre }}</td>
+        <td>{{ pp.rango|default:pp.integrante.rango }}</td><td>{{ pp.get_tipo_participacion_display }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}<p>Sin personal cargado.</p>{% endif %}
+
+  {% if "rodados" in h.secciones or "damnificados" in h.secciones %}
+  <div class="banda">{% if "rodados" in h.secciones %}Vehículos siniestrados y damnificados{% else %}Damnificados{% endif %}</div>
+  {% for r in h.rodados %}
+    <p style="margin:0.3rem 0;"><b>Rodado {{ r.rodado_numero }}:</b> {{ r.marca }} {{ r.modelo }}{% if r.dominio %} ({{ r.dominio }}){% endif %}{% if r.seguro %} · Seguro: {{ r.seguro }}{% endif %}</p>
+    {% include "partes/_damnificados_hoja.html" with damnificados=r.damnificados.all %}
+  {% empty %}{% if not h.sin_rodado %}<p>Sin datos cargados.</p>{% endif %}{% endfor %}
+  {% if h.sin_rodado %}
+    <p style="margin:0.3rem 0;"><b>Damnificados sin rodado</b></p>
+    {% include "partes/_damnificados_hoja.html" with damnificados=h.sin_rodado %}
+  {% endif %}
+  {% endif %}
+
+  {% if h.incendio %}
+  <div class="banda">Incendio - Datos damnificado</div>
+  <div class="renglones">
+    <div><span>Datos sobre lo dañado</span>{{ h.incendio.tipo_bien_danado|default:"—" }}</div>
+    <div><span>Damnificado</span>{{ h.incendio.damnificado_nombre|default:"—" }}{% if h.incendio.edad %}, {{ h.incendio.edad }} años{% endif %}{% if h.incendio.dni %} · DNI {{ h.incendio.dni }}{% endif %}</div>
+  </div>
+  {% if h.incendio.descripcion %}<p>{{ h.incendio.descripcion|linebreaksbr }}</p>{% endif %}
+  {% endif %}
+
+  {% if h.entidades %}
+  <div class="banda">Policial · Tránsito · Forense · Juzgado</div>
+  <div class="renglones">
+    {% for e in h.entidades %}<div><span>{{ e.tipo_entidad }}</span>Móvil {{ e.numero_movil|default:"—" }} · a cargo: {{ e.a_cargo|default:"—" }}</div>{% endfor %}
+  </div>
+  {% endif %}
+
+  {% if h.negativas %}
+  <div class="banda">Negativas a la atención</div>
+  {% for n in h.negativas %}<p style="margin:0.2rem 0;">{{ n.fecha|date:"d/m/Y" }} · {{ n.get_tipo_firmante_display }}: {{ n.nombre_firmante }} (DNI {{ n.dni_firmante }})</p>{% endfor %}
+  {% endif %}
+
+  {% if p.observaciones %}
+  <div class="banda">Observaciones</div>
+  <p>{{ p.observaciones|linebreaksbr }}</p>
+  {% endif %}
+  {% if perms.partes.ver_confidencial and p.descripcion_confidencial %}
+  <div class="banda">Descripción confidencial</div>
+  <p>{{ p.descripcion_confidencial|linebreaksbr }}</p>
+  {% endif %}
+
+  {% if h.firma_cierre %}
+  <div class="sello-hoja">Parte cerrado por <b>{{ h.firma_cierre.firmante }}</b> el {{ h.firma_cierre.fecha|date:"d/m/Y" }}
+    a las {{ h.firma_cierre.fecha|time:"H:i" }} · Sello <b>{{ h.firma_cierre.codigo }}</b></div>
+  {% elif p.esta_cerrado %}
+  <div class="sello-hoja">Cerrado por {{ p.cerro }} el {{ p.fecha_cierre|date:"d/m/Y H:i" }}.</div>
+  {% endif %}
+  {% for c in h.correcciones %}
+  <div class="sello-hoja">Corregido después del cierre el {{ c.firma.fecha|date:"d/m/Y H:i" }} por <b>{{ c.firma.firmante }}</b>
+    · Sello <b>{{ c.firma.codigo }}</b>. Motivo: {{ c.motivo }}.
+    Cambió: {% for campo, antes, despues in c.cambios %}{{ campo|lower }}{% if not forloop.last %}, {% endif %}{% endfor %}.</div>
+  {% endfor %}
+  {% if not p.esta_cerrado %}
+  <div class="sello-hoja">Parte sin cerrar: los datos pueden cambiar.</div>
+  {% endif %}
+</div>
+{% endwith %}{% empty %}
+<div class="card"><p class="vacio">No hay partes para imprimir.</p></div>
+{% endfor %}
+{% endblock %}

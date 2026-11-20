@@ -1,0 +1,112 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}{% if capacitacion.pk %}Corregir capacitación {{ capacitacion.numero_correlativo }}/{{ capacitacion.anio }}{% else %}Nueva capacitación{% endif %} — Bomberos Villa María{% endblock %}
+
+{% block estilos %}
+  .casillas > div { display:flex; flex-wrap:wrap; gap:0.4rem 1.1rem; margin-top:0.4rem; }
+  .casillas label { font-weight:400; display:flex; gap:0.35rem; align-items:center; margin:0; }
+  .casillas div div { display:contents; }
+  .ayudantes > div { max-height:14rem; overflow-y:auto; border:1px solid var(--borde); border-radius:8px; padding:0.5rem; }
+{% endblock %}
+
+{% block contenido %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="card">
+    <h1>Control de capacitación</h1>
+    <p class="ayuda" style="margin:0;">Control de salida N° {% if capacitacion.pk %}{{ capacitacion.numero_correlativo }}/{{ capacitacion.anio }}{% else %}lo pone el sistema{% endif %}.</p>
+    {% if form.non_field_errors %}<div class="msg error" style="margin-top:0.8rem;">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.obligatoria %}
+      {% include "partes/_campo.html" with campo=form.modalidad %}
+      {% include "partes/_campo.html" with campo=form.curso_especial %}
+    </div>
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.fecha %}
+      {% include "partes/_campo.html" with campo=form.hora_inicio %}
+      {% include "partes/_campo.html" with campo=form.fecha_fin %}
+      {% include "partes/_campo.html" with campo=form.hora_fin %}
+    </div>
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.unidad %}
+      <div data-mostrar-si="unidad">{% include "partes/_campo.html" with campo=form.vehiculo %}</div>
+      <div data-mostrar-si="unidad">{% include "partes/_campo.html" with campo=form.km_regreso %}</div>
+    </div>
+    <div class="ayuda" id="km-actual" data-mostrar-si="unidad"></div>
+    {% if puede_moviles %}<p class="ayuda" data-mostrar-si="unidad" style="margin-bottom:0;"><a href="{% url 'moviles' %}">Cargar o corregir móviles</a></p>{% endif %}
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.guardia %}
+      {% include "partes/_campo.html" with campo=form.guardia_desde %}
+      {% include "partes/_campo.html" with campo=form.guardia_hasta %}
+    </div>
+    <div class="campos">{% include "partes/_campo.html" with campo=form.lugar %}</div>
+  </div>
+
+  <div class="card">
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.nivel %}
+      {% include "partes/_campo.html" with campo=form.a_cargo_integrante %}
+      {% include "partes/_campo.html" with campo=form.a_cargo %}
+    </div>
+    <h2>{{ form.ayudantes.label }}</h2>
+    {% include "partes/_grilla_personal.html" with campo=form.ayudantes anio=form.anio grilla="ayudantes" %}
+  </div>
+
+  <div class="card">
+    <h2>Personal que asistió</h2>
+    {% include "partes/_grilla_personal.html" with campo=form.asistentes anio=form.anio datos=form contador="Cantidad de personal" %}
+    <div class="ayuda">En la tabla de los marcados se anota quién cobró su participación.</div>
+  </div>
+
+  <div class="card">
+    <h2>Datos de la capacitación</h2>
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.sentido %}
+      {% include "partes/_campo.html" with campo=form.datos %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Destino de la misma</h2>
+    <div class="casillas">{{ form.lista_destinos }}</div>
+    <div class="campo-check" style="max-width:340px;"><label>{{ form.de_departamento }} {{ form.de_departamento.label }}</label></div>
+    <div id="lista-departamentos" style="margin-top:0.4rem;">
+      {{ form.departamentos.errors }}
+      <div class="casillas">{{ form.departamentos }}</div>
+    </div>
+    <div class="campos">{% include "partes/_campo.html" with campo=form.otro_destino %}</div>
+  </div>
+
+  <div class="barra-guardar">
+    <button type="submit" class="btn">Guardar</button>
+    <a class="btn gris" href="{% if capacitacion.pk %}{% url 'detalle_capacitacion' capacitacion.pk %}{% else %}{% url 'capacitaciones' %}{% endif %}">Cancelar</a>
+  </div>
+</form>
+{{ km_moviles|json_script:"km-moviles" }}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // "Capacitación de departamento": la lista de departamentos se ve solo con la casilla tildada.
+  (function () {
+    var casilla = document.getElementById("{{ form.de_departamento.id_for_label }}");
+    var lista = document.getElementById("lista-departamentos");
+    function mostrar() { lista.hidden = !casilla.checked; }
+    casilla.addEventListener("change", mostrar);
+    mostrar();
+  })();
+
+  // Muestra el km actual del móvil elegido, para no equivocarse con el de regreso.
+  (function () {
+    var kms = JSON.parse(document.getElementById("km-moviles").textContent);
+    var select = document.getElementById("{{ form.vehiculo.id_for_label }}");
+    var aviso = document.getElementById("km-actual");
+    function mostrar() {
+      var km = kms[select.value];
+      aviso.textContent = km !== undefined ? "Km actual del móvil: " + km.toLocaleString("es-AR") + " — el de regreso tiene que ser mayor." : "";
+    }
+    select.addEventListener("change", mostrar);
+    mostrar();
+  })();
+</script>
+{% endblock %}

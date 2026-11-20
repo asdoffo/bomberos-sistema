@@ -1,0 +1,88 @@
+{% comment %}Grilla de números de mérito, como en las planillas en papel: se tocan los números de quienes
+estuvieron. Con buscador por N° o apellido (Enter marca al primero) y contador de marcados.
+Uso: include con campo=form.integrantes (CheckboxSelectMultiple con queryset de integrantes_por_merito)
+y anio=2026. Con varias grillas en la misma página, cada una lleva grilla="nombre" distinto.
+Opcional: datos=form (un DatosPorIntegrante): debajo, una fila por cada marcado con sus campos
+(concurrencia, participación, cobró...).{% endcomment %}
+{% with g=grilla|default:"personal" %}
+<div class="grilla-personal" data-grilla="{{ g }}">
+<div class="ayuda">Tocá los números de mérito {{ anio }}. <span data-contador="{{ contador|default:'Marcados' }}"></span></div>
+{{ campo.errors }}
+<input type="search" id="buscar-{{ g }}" class="buscar-personal" autocomplete="off" data-buscador
+       placeholder="Buscar por N° o apellido" aria-label="Buscar integrante por número de mérito o apellido">
+<div class="ayuda" data-estado aria-live="polite">Enter marca al primero de la lista.</div>
+<div class="grilla-merito">
+  {% for opcion in campo %}
+    <label data-buscar="{{ opcion.choice_label }} {{ opcion.data.value.instance.merito|default:'' }} {{ opcion.data.value.instance.apellido }} {{ opcion.data.value.instance.nombre }}" title="{{ opcion.data.value.instance.apellido }}, {{ opcion.data.value.instance.nombre }}">{{ opcion.tag }}{{ opcion.choice_label }}<small>{{ opcion.data.value.instance.apellido }}</small></label>
+  {% endfor %}
+</div>
+{% if datos.filas %}
+<div class="tabla-scroll" data-detalle hidden>
+<table class="detalle-personal">
+  <tr><th>Integrante</th>{% for c in datos.columnas %}<th>{{ c }}</th>{% endfor %}</tr>
+  {% for integrante, campos in datos.filas %}
+  <tr data-integrante="{{ integrante.pk }}" hidden>
+    <td>{% if integrante.merito %}<b>{{ integrante.merito|stringformat:"03d" }}</b> {% endif %}{{ integrante.apellido }}, {{ integrante.nombre }}</td>
+    {% for c in campos %}<td>{% if c.widget_type == "checkbox" %}<label class="campo-check-chico">{{ c }} Sí</label>{% else %}{{ c }}{% endif %}</td>{% endfor %}
+  </tr>
+  {% endfor %}
+</table>
+</div>
+{% endif %}
+</div>
+{% endwith %}
+<script>
+  (function () {
+    var cajas = document.querySelectorAll(".grilla-personal:not([data-lista])");
+    var caja = cajas[cajas.length - 1];  // la que se acaba de dibujar
+    caja.dataset.lista = "1";
+    var casillas = caja.querySelectorAll(".grilla-merito input[type=checkbox]");
+    var contador = caja.querySelector("[data-contador]");
+    var detalle = caja.querySelector("[data-detalle]");
+    function contar() {
+      var n = 0;
+      casillas.forEach(function (c) {
+        if (c.checked) n++;
+        var fila = detalle && detalle.querySelector('tr[data-integrante="' + c.value + '"]');
+        if (fila) fila.hidden = !c.checked;
+      });
+      contador.textContent = n ? contador.dataset.contador + ": " + n + "." : "";
+      if (detalle) detalle.hidden = !n;
+    }
+    casillas.forEach(function (c) { c.addEventListener("change", contar); });
+    // Al restaurar lo guardado en el celular las casillas cambian sin evento propio.
+    document.addEventListener("change", contar);
+    contar();
+
+    var buscador = caja.querySelector("[data-buscador]");
+    var estado = caja.querySelector("[data-estado]");
+    var etiquetas = Array.from(caja.querySelectorAll(".grilla-merito label"));
+    function clave(t) { return t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+    etiquetas.forEach(function (e) { e.dataset.clave = clave(e.dataset.buscar).split(/\s+/).join(" "); });
+    function visibles() { return etiquetas.filter(function (e) { return !e.hidden; }); }
+    buscador.addEventListener("input", function () {
+      var palabras = clave(buscador.value).split(/\s+/).filter(Boolean);
+      etiquetas.forEach(function (e) {
+        var claves = e.dataset.clave.split(" ");
+        // Cada palabra buscada tiene que ser el comienzo del número, del apellido o del nombre.
+        e.hidden = !palabras.every(function (p) { return claves.some(function (c) { return c.indexOf(p) === 0; }); });
+      });
+      var n = visibles().length;
+      estado.textContent = !palabras.length ? "Enter marca al primero de la lista."
+        : n ? (n === 1 ? "1 integrante. Enter lo marca." : n + " integrantes. Enter marca al primero.")
+        : "Nadie coincide con la búsqueda.";
+    });
+    buscador.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter") return;
+      e.preventDefault();  // no enviar el formulario
+      var primero = visibles()[0];
+      if (!buscador.value.trim() || !primero) return;
+      var casilla = primero.querySelector("input");
+      casilla.checked = !casilla.checked;
+      casilla.dispatchEvent(new Event("change", { bubbles: true }));
+      estado.textContent = (casilla.checked ? "Marcado: " : "Desmarcado: ") + primero.title + ".";
+      buscador.value = "";
+      etiquetas.forEach(function (e) { e.hidden = false; });
+    });
+  })();
+</script>

@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#b03a2e">
+<title>{% block titulo %}Bomberos Villa María{% endblock %}</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23b91c1c'/><text x='50' y='72' font-size='64' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle'>B</text></svg>">
+<style>
+  :root {
+    --rojo:#c0392b; --rojo-oscuro:#962d22; --rojo-suave:#fdecea;
+    --fondo:#f3f4f6; --tarjeta:#fff; --texto:#1f2937; --gris:#6b7280; --borde:#e5e7eb;
+    --azul:#2563eb; --verde:#15803d; --radio:10px;
+  }
+  * { box-sizing:border-box; }
+  body { font-family:system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background:var(--fondo); color:var(--texto); margin:0; line-height:1.45; }
+  /* Escudo del cuartel de fondo, muy suave, detrás de todo (no se imprime) */
+  body::before { content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+                 background:url("/static/partes/escudo.jpg") no-repeat center 55% / min(70vh, 70vw); opacity:0.07; }
+  .card { background-color:rgba(255,255,255,0.93); }
+  @media print { body::before { display:none; } }
+  a { color:var(--azul); }
+
+  /* --- Menú lateral (como RUBA). En la PC queda fijo; en el celular se abre con "Menú". --- */
+  :root { --ancho-lateral:236px; }
+  .lateral { position:fixed; top:0; bottom:0; left:0; width:var(--ancho-lateral); background:#1f2937; color:#e5e7eb;
+             display:flex; flex-direction:column; z-index:30; overflow-y:auto; }
+  .marca { display:flex; align-items:center; gap:0.6rem; padding:1.1rem 1.1rem 1rem 1.1rem; color:#fff; text-decoration:none;
+           border-bottom:1px solid rgba(255,255,255,0.08); }
+  .marca .escudo { width:2.1rem; height:2.1rem; border-radius:8px; background:var(--rojo); display:flex; align-items:center;
+                   justify-content:center; font-weight:800; flex:none; }
+  .marca b { display:block; font-size:0.98rem; line-height:1.1; }
+  .marca small { font-size:0.75rem; color:#9ca3af; }
+  .menu-lateral { display:flex; flex-direction:column; gap:0.1rem; padding:0.8rem 0.6rem; flex:1; }
+  .menu-lateral a { color:#d1d5db; text-decoration:none; padding:0.6rem 0.8rem; border-radius:8px; font-size:0.95rem;
+                    border-left:3px solid transparent; }
+  .menu-lateral a:hover { background:rgba(255,255,255,0.06); color:#fff; }
+  .menu-lateral a.activo { background:rgba(192,57,43,0.22); color:#fff; font-weight:600; border-left-color:var(--rojo); }
+  .menu-lateral .separador { height:1px; background:rgba(255,255,255,0.08); margin:0.5rem 0.4rem; }
+  .pie-lateral { padding:0.9rem 1.1rem 1.1rem 1.1rem; border-top:1px solid rgba(255,255,255,0.08); font-size:0.85rem; }
+  .pie-lateral .quien { color:#fff; font-weight:600; }
+  .pie-lateral .rol { color:#9ca3af; font-size:0.78rem; margin-bottom:0.6rem; }
+  .salir { margin:0; }
+  .salir button { width:100%; color:#fff; font-size:0.9rem; padding:0.5rem; border-radius:8px; background:rgba(255,255,255,0.08);
+                  border:1px solid rgba(255,255,255,0.12); cursor:pointer; font-family:inherit; }
+  .salir button:hover { background:rgba(255,255,255,0.16); }
+  .barra-movil { display:none; }
+  .tapa { display:none; }
+  .con-lateral main { margin-left:var(--ancho-lateral); }
+  @media (min-width:901px) { .con-lateral main { padding:1.4rem 1.6rem; max-width:calc(1040px + var(--ancho-lateral)); } }
+  @media (max-width:900px) {
+    .lateral { transform:translateX(-100%); transition:transform 0.2s ease; }
+    .lateral.abierto { transform:none; box-shadow:4px 0 16px rgba(0,0,0,0.25); }
+    .tapa.visible { display:block; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:25; }
+    .con-lateral main { margin-left:0; }
+    .barra-movil { display:flex; align-items:center; gap:0.6rem; position:sticky; top:0; z-index:20; background:var(--rojo);
+                   color:#fff; padding:0.55rem 0.9rem; box-shadow:0 2px 6px rgba(0,0,0,0.15); }
+    .barra-movil button { background:rgba(255,255,255,0.15); color:#fff; border:0; border-radius:8px; padding:0.45rem 0.8rem;
+                          font-family:inherit; font-size:0.92rem; font-weight:600; cursor:pointer; }
+    .barra-movil .titulo-movil { font-weight:700; }
+  }
+
+  main { max-width:1040px; margin:0 auto; padding:1rem; }
+  .card { background:var(--tarjeta); margin:0 auto 1rem auto; padding:1.25rem; border-radius:var(--radio); box-shadow:0 1px 3px rgba(0,0,0,0.08); border:1px solid var(--borde); }
+  h1 { color:var(--rojo); font-size:1.4rem; margin:0 0 0.3rem 0; }
+  h2 { font-size:1.02rem; margin:1.4rem 0 0.6rem 0; padding-bottom:0.35rem; border-bottom:2px solid var(--rojo-suave); display:flex; align-items:center; gap:0.4rem; }
+  .card > h2:first-child { margin-top:0; }
+  .subtitulo { color:var(--gris); font-size:0.9rem; }
+
+  /* --- Tablas --- */
+  table { width:100%; border-collapse:collapse; margin-top:0.4rem; }
+  th, td { text-align:left; padding:0.6rem 0.5rem; border-bottom:1px solid var(--borde); font-size:0.9rem; vertical-align:top; }
+  th { color:var(--gris); text-transform:uppercase; font-size:0.72rem; letter-spacing:0.04em; font-weight:600; }
+  .tabla-scroll { overflow-x:auto; }
+
+  /* --- Botones --- */
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:0.35rem; background:var(--rojo); color:#fff; padding:0.65rem 1.1rem; border-radius:8px; text-decoration:none; font-size:0.95rem; border:1px solid var(--rojo); cursor:pointer; font-family:inherit; font-weight:600; min-height:44px; }
+  .btn:hover { background:var(--rojo-oscuro); }
+  .btn.secundario { background:#fff; color:var(--rojo); }
+  .btn.secundario:hover { background:var(--rojo-suave); }
+  .btn.gris { background:#fff; color:var(--texto); border-color:var(--borde); }
+  .btn.chico { min-height:34px; padding:0.35rem 0.7rem; font-size:0.85rem; }
+  .btn[disabled] { opacity:0.5; cursor:not-allowed; }
+  .link-boton { background:none; border:0; padding:0; cursor:pointer; color:var(--azul); font-size:0.9rem; font-family:inherit; text-decoration:underline; }
+  .acciones { display:flex; gap:0.6rem; flex-wrap:wrap; margin-top:1rem; }
+  .barra-guardar { position:sticky; bottom:0; background:rgba(255,255,255,0.96); border-top:1px solid var(--borde); padding:0.7rem 1rem; margin:0 -1rem; display:flex; gap:0.6rem; flex-wrap:wrap; justify-content:center; z-index:5; backdrop-filter:blur(4px); }
+  .sello { display:flex; gap:0.8rem; align-items:center; margin-top:1rem; padding:0.8rem 1rem; border:2px solid var(--verde);
+           border-radius:10px; background:#f0fdf4; }
+  .sello .marca-sello { font-size:0.7rem; font-weight:800; letter-spacing:0.12em; color:var(--verde); border:2px solid var(--verde);
+                        border-radius:50%; width:4.2rem; height:4.2rem; display:flex; align-items:center; justify-content:center;
+                        text-align:center; flex:none; transform:rotate(-12deg); }
+  .sello code { font-size:0.95rem; font-weight:700; letter-spacing:0.05em; }
+  .firmar { margin-top:0.8rem; border:1px solid var(--borde); border-radius:10px; padding:0.6rem 0.9rem; }
+  .firmar summary { cursor:pointer; font-weight:600; }
+  .firmar .fila-firma { display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end; margin-top:0.6rem; }
+  .firmar input { max-width:20rem; margin-top:0 !important; }
+  /* Tabla que en el celular se ve como tarjetas: cada celda lleva su título en data-label. */
+  @media (max-width:640px) {
+    .tabla-adaptable, .tabla-adaptable tbody { display:block; }
+    .tabla-adaptable tr:first-child:has(th) { display:none; }
+    .tabla-adaptable tr { display:grid; grid-template-columns:repeat(4, 1fr); gap:0.3rem 0.4rem; padding:0.7rem 0.2rem; border-bottom:1px solid var(--borde); }
+    .tabla-adaptable td { display:block; border:0 !important; padding:0 !important; text-align:left !important; font-size:0.9rem; }
+    .tabla-adaptable td[data-label]::before { content:attr(data-label); display:block; font-size:0.66rem; color:var(--gris); text-transform:uppercase; letter-spacing:0.02em; }
+    .tabla-adaptable td.ancha { grid-column:span 3; }
+    .tabla-adaptable td.entera { grid-column:1 / -1; }
+    .tabla-adaptable td.entera:empty { display:none; }
+    .solo-pc { display:none; }
+  }
+  .barra-guardar .btn { flex:1 1 0; max-width:16rem; white-space:nowrap; }
+  @media (max-width:640px) {
+    .barra-guardar { flex-wrap:nowrap; gap:0.4rem; padding:0.5rem 0.6rem; }
+    .barra-guardar .btn { padding-left:0.5rem; padding-right:0.5rem; font-size:0.88rem; }
+  }
+
+  /* --- Mensajes y estados --- */
+  .msg { background:#ecfdf3; border:1px solid #86efac; color:#14532d; padding:0.75rem 1rem; border-radius:8px; margin-bottom:1rem; display:flex; gap:0.5rem; }
+  .msg.error { background:var(--rojo-suave); border-color:#f5b7b1; color:#7b241c; }
+  .msg.info { background:#eff6ff; border-color:#bfdbfe; color:#1e3a8a; }
+  .msg.warning { background:#fffbeb; border-color:#fcd34d; color:#78350f; }
+  .estado-celular { flex-direction:column; align-items:flex-start; }
+  .telefono { display:grid; grid-template-columns:6.5rem 1fr; gap:0 0.6rem; }
+  .estado-celular[hidden] { display:none; }
+  .vacio { color:var(--gris); padding:0.6rem 0; margin:0; }
+  .ayuda { color:var(--gris); font-size:0.8rem; }
+  .estado { padding:3px 10px; border-radius:999px; font-size:0.78rem; background:#eee; white-space:nowrap; font-weight:600; }
+  .estado-iniciado { background:#fef3c7; color:#92400e; }
+  .estado-en-curso { background:#dbeafe; color:#1e40af; }
+  .estado-cerrado { background:#dcfce7; color:#166534; }
+  .triage { padding:3px 10px; border-radius:999px; font-size:0.78rem; white-space:nowrap; font-weight:600; }
+  .triage-rojo { background:#c0392b; color:#fff; }
+  .triage-amarillo { background:#facc15; color:#000; }
+  .triage-verde { background:#16a34a; color:#fff; }
+  .triage-negro { background:#111; color:#fff; }
+  .triage-blanco { background:#f3f4f6; color:#333; border:1px solid #d1d5db; }
+
+  /* --- Formularios --- */
+  label { display:block; margin-top:0.75rem; font-weight:600; font-size:0.85rem; }
+  input:not([type=checkbox]):not([type=radio]):not([type=file]), select, textarea {
+    width:100%; padding:0.6rem 0.65rem; margin-top:0.25rem; border:1px solid #d1d5db; border-radius:8px; font-size:1rem; font-family:inherit; background:#fff; min-height:44px; }
+  input:focus, select:focus, textarea:focus { outline:2px solid #fca5a5; border-color:var(--rojo); }
+  input[type=checkbox] { width:1.25rem; height:1.25rem; accent-color:var(--rojo); margin:0; flex:none; }
+  input[type=file] { margin-top:0.4rem; font-size:0.95rem; }
+  .campos { display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:0 1rem; }
+  .campo-ancho { grid-column:1 / -1; }
+  .campo-check label { display:flex; align-items:center; gap:0.5rem; font-weight:500; min-height:44px; margin-top:0.75rem; padding:0 0.7rem; border:1px solid var(--borde); border-radius:8px; cursor:pointer; }
+  .campo-check label:has(input:checked) { border-color:var(--rojo); background:var(--rojo-suave); }
+  .con-ahora { display:flex; gap:0.4rem; align-items:center; }
+  .con-ahora input { flex:1; }
+  .btn-ahora { margin-top:0.25rem; min-height:44px; padding:0 0.7rem; border:1px solid #d1d5db; border-radius:8px; background:#f9fafb; cursor:pointer; font-size:0.85rem; font-family:inherit; }
+  .errorlist { color:#b91c1c; font-size:0.82rem; margin:0.25rem 0 0 0; padding-left:1rem; }
+  .tiene-error input, .tiene-error select, .tiene-error textarea { border-color:#dc2626; }
+  .fila-form { border:1px solid var(--borde); border-radius:var(--radio); padding:0.2rem 0.9rem 0.9rem 0.9rem; margin-top:0.8rem; background:#fcfcfd; position:relative; }
+  .fila-form.nueva { border-style:dashed; background:#fff; }
+  .fila-form .quitar { margin-top:0.6rem; display:inline-flex; align-items:center; gap:0.4rem; color:#b91c1c; font-weight:500; font-size:0.85rem; }
+  .fila-form:has(.quitar input:checked) { opacity:0.5; }
+  .grupo { border:0; padding:0; margin:0; }
+  [hidden] { display:none !important; }
+
+  /* Triage con botones de colores (RadioSelect) */
+  .opciones-triage > div { display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.3rem; }
+  .opciones-triage > div label { margin:0; display:flex; align-items:center; gap:0.35rem; padding:0.5rem 0.75rem; border-radius:999px; border:2px solid transparent; font-weight:600; font-size:0.85rem; cursor:pointer; min-height:40px; }
+  .opciones-triage input { position:absolute; opacity:0; width:0; height:0; }
+  .opciones-triage > div label:has(input[value=rojo]) { background:#fadbd8; color:#922b21; }
+  .opciones-triage > div label:has(input[value=amarillo]) { background:#fef9c3; color:#854d0e; }
+  .opciones-triage > div label:has(input[value=verde]) { background:#dcfce7; color:#166534; }
+  .opciones-triage > div label:has(input[value=negro]) { background:#e5e7eb; color:#111; }
+  .opciones-triage > div label:has(input[value=blanco]) { background:#fff; color:#374151; border-color:#d1d5db; }
+  .opciones-triage > div label:has(input[value=rojo]:checked) { background:#c0392b; color:#fff; border-color:#7b241c; }
+  .opciones-triage > div label:has(input[value=amarillo]:checked) { background:#facc15; color:#000; border-color:#a16207; }
+  .opciones-triage > div label:has(input[value=verde]:checked) { background:#16a34a; color:#fff; border-color:#14532d; }
+  .opciones-triage > div label:has(input[value=negro]:checked) { background:#111; color:#fff; border-color:#000; }
+  .opciones-triage > div label:has(input[value=blanco]:checked) { border-color:#374151; }
+  .opciones-triage > div label:has(input[value=sin_lesiones]) { background:#fff; color:#1f2937; border-color:#9ca3af; border-style:dashed; }
+  .opciones-triage > div label:has(input[value=sin_lesiones]:checked) { background:#1f2937; color:#fff; border-style:solid; }
+  .triage-sin_lesiones { background:#fff; color:#1f2937; border:1px dashed #9ca3af; }
+  .triage- { background:#f9fafb; color:#6b7280; }
+  /* Firma con el dedo (input oculto con data-firma) */
+  .firma { display:flex; gap:0.5rem; align-items:flex-end; flex-wrap:wrap; margin-top:0.3rem; }
+  .firma canvas { width:100%; max-width:22rem; height:8rem; border:1px dashed #9ca3af; border-radius:8px; background:#fff; touch-action:none; }
+  .abrir-seccion { display:block; margin:0 0 0.7rem 0; }
+  .firma-recibe { max-width:12rem; max-height:4rem; margin-top:0.3rem; border-bottom:1px solid #d1d5db; }
+  /* Tabla de cada marcado en la grilla de personal */
+  .detalle-personal { width:100%; margin-top:0.8rem; border-collapse:collapse; }
+  .detalle-personal td, .detalle-personal th { padding:0.3rem 0.4rem; border-bottom:1px solid #f3f4f6; text-align:left; }
+  .detalle-personal select { width:auto; margin:0 !important; }
+  .campo-check-chico { display:flex; gap:0.3rem; align-items:center; font-weight:400; margin:0; }
+  /* Grilla de números de mérito (_grilla_personal.html) */
+  .grilla-merito { display:grid; grid-template-columns:repeat(auto-fill, minmax(4.2rem, 1fr)); gap:0.35rem; margin-top:0.6rem; }
+  .grilla-merito label { display:flex; flex-direction:column; align-items:center; border:1px solid var(--borde); border-radius:8px;
+                         padding:0.35rem 0.2rem; cursor:pointer; font-weight:700; line-height:1.1; user-select:none; }
+  .grilla-merito label small { font-weight:400; color:var(--gris); font-size:0.68rem; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .grilla-merito input { position:absolute; opacity:0; pointer-events:none; }
+  .grilla-merito label:has(input:checked) { background:var(--rojo); border-color:var(--rojo); color:#fff; }
+  .grilla-merito label:has(input:checked) small { color:#fde2e2; }
+  .grilla-merito label:has(input:focus-visible) { outline:2px solid #111; }
+  .buscar-personal { max-width:22rem; margin-top:0.6rem; }
+  .grilla-merito label[hidden] { display:none; }
+  .opciones-medio_llamado > div, .opciones-modalidad > div, .opciones-nivel > div, .opciones-sentido > div, .opciones-tipo > div, .opciones-lugar > div { display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.3rem; }
+  .opciones-medio_llamado > div label, .opciones-modalidad > div label, .opciones-nivel > div label, .opciones-sentido > div label, .opciones-tipo > div label, .opciones-lugar > div label { margin:0; padding:0.5rem 0.9rem; border-radius:999px; border:1px solid var(--borde); font-weight:600; font-size:0.9rem; cursor:pointer; min-height:40px; display:flex; align-items:center; }
+  .opciones-medio_llamado input, .opciones-modalidad input, .opciones-nivel input, .opciones-sentido input, .opciones-tipo input, .opciones-lugar input { position:absolute; opacity:0; width:0; height:0; }
+  .opciones-medio_llamado > div label:has(input:checked), .opciones-modalidad > div label:has(input:checked), .opciones-nivel > div label:has(input:checked), .opciones-sentido > div label:has(input:checked), .opciones-tipo > div label:has(input:checked), .opciones-lugar > div label:has(input:checked) { background:var(--rojo); border-color:var(--rojo); color:#fff; }
+  .opciones-medio_llamado > div label:has(input:focus-visible), .opciones-modalidad > div label:has(input:focus-visible), .opciones-nivel > div label:has(input:focus-visible), .opciones-sentido > div label:has(input:focus-visible), .opciones-tipo > div label:has(input:focus-visible), .opciones-lugar > div label:has(input:focus-visible) { outline:2px solid #111; }
+
+  .datos { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.1rem 1.5rem; }
+  .datos div { padding:0.45rem 0; border-bottom:1px solid #f3f4f6; font-size:0.92rem; }
+  .datos span { color:var(--gris); display:block; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.03em; }
+  {% block estilos %}{% endblock %}
+</style>
+</head>
+<body class="{% if user.is_authenticated %}con-lateral{% endif %}">
+  {% if user.is_authenticated %}
+  {% with vista=request.resolver_match.url_name %}
+  <header class="barra-movil">
+    <button type="button" id="abrir-menu" aria-controls="lateral" aria-expanded="false">Menú</button>
+    <span class="titulo-movil">Bomberos Villa María</span>
+  </header>
+  <div class="tapa" id="tapa"></div>
+  <aside class="lateral" id="lateral" aria-label="Menú principal">
+    <a class="marca" href="{% url 'menu' %}"><span class="escudo">B</span><span><b>Bomberos</b><small>Villa María</small></span></a>
+    <nav class="menu-lateral">
+      <a href="{% url 'menu' %}" class="{% if vista == 'menu' %}activo{% endif %}">Inicio</a>
+      <a href="{% url 'listado_partes' %}" class="{% if vista in 'listado_partes crear_parte detalle_parte completar_parte corregir_parte damnificados incendio nueva_negativa fotos' %}activo{% endif %}">Partes de intervención</a>
+      {% if perms.partes.view_capacitacion %}<a href="{% url 'capacitaciones' %}" class="{% if vista in 'capacitaciones nueva_capacitacion detalle_capacitacion editar_capacitacion' %}activo{% endif %}">Partes de capacitación</a>{% endif %}
+      {% if perms.partes.view_mantenimiento %}<a href="{% url 'mantenimientos' %}" class="{% if vista in 'mantenimientos nuevo_mantenimiento detalle_mantenimiento editar_mantenimiento' %}activo{% endif %}">Partes de mantenimiento</a>{% endif %}
+      {% if perms.partes.view_vehiculo %}<a href="{% url 'moviles' %}" class="{% if vista in 'moviles nuevo_movil editar_movil detalle_movil' %}activo{% endif %}">Móviles</a>{% endif %}
+      {% if perms.partes.view_periodo %}<a href="{% url 'resumen_prensa' %}" class="{% if vista == 'resumen_prensa' %}activo{% endif %}">Resumen de prensa</a>{% endif %}
+      {% if perms.partes.view_ordenentrega %}<a href="{% url 'ordenes_entrega' %}" class="{% if vista in 'ordenes_entrega nueva_orden detalle_orden editar_orden' %}activo{% endif %}">Órdenes de entrega</a>{% endif %}
+      {% if perms.partes.view_anotacionlibroguardia %}<a href="{% url 'libro_guardia' %}" class="{% if vista == 'libro_guardia' %}activo{% endif %}">Libro de guardia</a>{% endif %}
+      {% if perms.partes.add_personale100 %}<a href="{% url 'personal_e100' %}" class="{% if vista == 'personal_e100' %}activo{% endif %}">Personal E-100</a>{% endif %}
+      {% if perms.partes.add_calle %}<a href="{% url 'calles' %}" class="{% if vista == 'calles' %}activo{% endif %}">Calles</a>{% endif %}
+      {% if perms.partes.view_integrante %}<a href="{% url 'bomberos' %}" class="{% if vista in 'bomberos ficha_bombero editar_bombero nuevo_bombero' %}activo{% endif %}">Bomberos</a>{% endif %}
+      {% if perms.partes.view_periodo %}<a href="{% url 'tomos' %}" class="{% if vista in 'tomos tomo numeros_tomo imprimir_parte imprimir_partes_del_anio' %}activo{% endif %}">Períodos</a>{% endif %}
+      <span class="separador"></span>
+      <a href="{% url 'mi_perfil' %}" class="{% if vista == 'mi_perfil' %}activo{% endif %}">Mi perfil</a>
+      {% if user.is_staff %}<a href="{% url 'admin:index' %}">Administración</a>{% endif %}
+    </nav>
+    <div class="pie-lateral">
+      <div class="quien">{% if user.integrante %}{{ user.integrante.nombre }} {{ user.integrante.apellido }}{% else %}{{ user.username }}{% endif %}</div>
+      <div class="rol">{{ user.groups.all|join:", "|default:"Sin rol asignado" }}</div>
+      <form method="post" action="{% url 'logout' %}" class="salir">
+        {% csrf_token %}
+        <button type="submit">Salir</button>
+      </form>
+    </div>
+  </aside>
+  {% endwith %}
+  {% endif %}
+
+  <main>
+    <noscript><div class="msg error"><span>El navegador tiene JavaScript bloqueado (por ejemplo, con NoScript):
+      no van a andar las búsquedas, la dirección automática ni la carga sin señal. Marcá este sitio como de confianza.</span></div></noscript>
+    <div id="estado-celular" class="msg info estado-celular" role="status" hidden></div>
+    {% for m in messages %}
+      <div class="msg {{ m.tags }}" role="status"><span>{{ m }}</span></div>
+    {% endfor %}
+
+    {% block contenido %}{% endblock %}
+  </main>
+
+<script>
+/* Ayudas comunes de los formularios. Funcionan sin configuración en cualquier pantalla. */
+(function () {
+  function dosDigitos(n) { return String(n).padStart(2, "0"); }
+
+  // Botón "Ahora" al lado de cada campo de hora: en el lugar del siniestro es más rápido que tipear.
+  function agregarBotonesAhora(raiz) {
+    raiz.querySelectorAll('input[type=time]:not([data-con-ahora])').forEach(function (campo) {
+      campo.dataset.conAhora = "1";
+      var envoltura = document.createElement("div");
+      envoltura.className = "con-ahora";
+      campo.parentNode.insertBefore(envoltura, campo);
+      envoltura.appendChild(campo);
+      var boton = document.createElement("button");
+      boton.type = "button"; boton.className = "btn-ahora"; boton.textContent = "Ahora";
+      boton.addEventListener("click", function () {
+        var d = new Date();
+        campo.value = dosDigitos(d.getHours()) + ":" + dosDigitos(d.getMinutes());
+        campo.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      envoltura.appendChild(boton);
+    });
+  }
+
+  // data-mostrar-si="nombre_del_checkbox": muestra el bloque solo si ese checkbox está tildado.
+  // data-mostrar-si="nombre=valor": solo si en esas opciones (radio) está elegido ese valor.
+  function actualizarVisibles(raiz) {
+    raiz.querySelectorAll("[data-mostrar-si]").forEach(function (bloque) {
+      var ambito = bloque.closest(".fila-form") || document;
+      var partes = bloque.dataset.mostrarSi.split("=");
+      if (partes.length === 2) {
+        var lista = ambito.querySelector('select[name$="' + partes[0] + '"]');
+        if (lista) { bloque.hidden = lista.value !== partes[1]; return; }
+        var opciones = ambito.querySelectorAll('input[name$="' + partes[0] + '"]');
+        if (!opciones.length) return;
+        var elegida = Array.prototype.find.call(opciones, function (o) { return o.checked; });
+        bloque.hidden = !elegida || elegida.value !== partes[1];
+        return;
+      }
+      var casilla = ambito.querySelector('input[name$="' + partes[0] + '"]');
+      if (casilla) bloque.hidden = !casilla.checked;
+    });
+  }
+
+  // Botón "+ Agregar otro" en formsets: clona el formulario vacío sin recargar la página.
+  function prepararFormsets() {
+    document.querySelectorAll("[data-formset]").forEach(function (contenedor) {
+      var prefijo = contenedor.dataset.formset;
+      var total = document.getElementById("id_" + prefijo + "-TOTAL_FORMS");
+      var molde = document.getElementById("molde-" + prefijo);
+      var boton = contenedor.querySelector("[data-agregar]");
+      if (!total || !molde || !boton) return;
+      boton.addEventListener("click", function () {
+        var indice = parseInt(total.value, 10);
+        var html = molde.innerHTML.replace(/__prefix__/g, indice);
+        var temporal = document.createElement("div");
+        temporal.innerHTML = html;
+        var nuevo = temporal.firstElementChild;
+        contenedor.querySelector(".filas").appendChild(nuevo);
+        total.value = indice + 1;
+        agregarBotonesAhora(nuevo);
+        prepararFirmas(nuevo);
+        actualizarVisibles(nuevo);
+        var primero = nuevo.querySelector("input:not([type=hidden]), select");
+        if (primero) primero.focus();
+      });
+    });
+  }
+
+  // Triage: tocar de nuevo el color elegido lo destilda (si se tocó por error).
+  document.addEventListener("click", function (e) {
+    var opcion = e.target;
+    if (!(opcion.matches && opcion.matches('.opciones-triage input[type=radio]'))) return;
+    if (opcion.dataset.estaba === "1") {
+      opcion.checked = false;
+      opcion.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    document.querySelectorAll('input[name="' + opcion.name + '"]').forEach(function (o) {
+      o.dataset.estaba = o.checked ? "1" : "";
+    });
+  });
+  function recordarTriage() {
+    document.querySelectorAll('.opciones-triage input[type=radio]').forEach(function (o) {
+      o.dataset.estaba = o.checked ? "1" : "";
+    });
+  }
+
+  // Quitar una fila nueva (rodado o damnificado agregado por error). Django ignora el hueco.
+  document.addEventListener("click", function (e) {
+    if (!(e.target.matches && e.target.matches("[data-quitar-fila]"))) return;
+    var fila = e.target.closest(".fila-form");
+    var contenedor = fila.parentNode;
+    fila.remove();
+    contenedor.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+
+  // Autorefresco: pregunta cada tanto si cambió algo y recarga, si la pantalla lo permite (sePuede).
+  window.autorefrescar = function (url, version, segundos, sePuede) {
+    setInterval(function () {
+      if (document.hidden || !navigator.onLine) return;
+      fetch(url, { credentials: "same-origin" })
+        .then(function (r) { return r.json(); })
+        .then(function (datos) { if (datos.version !== version && sePuede()) location.reload(); })
+        .catch(function () {});
+    }, segundos * 1000);
+  };
+
+  // Médico que recibe: completa la matrícula si ya se lo conoce.
+  function actualizarMedicos() {
+    var fuente = document.getElementById("datos-medicos");
+    if (!fuente) return;
+    var conocidos = {};
+    JSON.parse(fuente.textContent).forEach(function (m) { conocidos[m.nombre.trim().toLowerCase()] = m; });
+    document.querySelectorAll('input[name$="-recibe_dr"]').forEach(function (campo) {
+      var medico = conocidos[campo.value.trim().toLowerCase()];
+      var matricula = campo.closest(".fila-form").querySelector('input[name$="-recibe_matricula"]');
+      if (medico && matricula && !matricula.value) matricula.value = medico.matricula;
+    });
+  }
+  document.addEventListener("input", function (e) {
+    if (e.target.name && /-recibe_dr$/.test(e.target.name)) actualizarMedicos();
+  });
+  document.addEventListener("change", actualizarMedicos);
+  document.addEventListener("DOMContentLoaded", actualizarMedicos);
+
+  // Firma con el dedo o con lápiz táctil: el input oculto [data-firma] guarda el dibujo como imagen PNG.
+  function prepararFirmas(raiz) {
+    raiz.querySelectorAll("input[data-firma]:not([data-con-firma])").forEach(function (campo) {
+      campo.dataset.conFirma = "1";
+      var caja = document.createElement("div");
+      caja.className = "firma";
+      var lienzo = document.createElement("canvas");
+      lienzo.width = 700; lienzo.height = 250;
+      lienzo.setAttribute("aria-label", "Firmar con el dedo o el lápiz táctil");
+      var borrar = document.createElement("button");
+      borrar.type = "button"; borrar.className = "btn gris chico"; borrar.textContent = "Borrar firma";
+      caja.appendChild(lienzo); caja.appendChild(borrar);
+      campo.parentNode.insertBefore(caja, campo.nextSibling);
+      var ctx = lienzo.getContext("2d");
+      var dibujado = "";
+      function mostrar() {
+        if (campo.value === dibujado) return;
+        ctx.clearRect(0, 0, lienzo.width, lienzo.height);
+        dibujado = campo.value;
+        if (!campo.value) return;
+        var imagen = new Image();
+        imagen.onload = function () { ctx.drawImage(imagen, 0, 0, lienzo.width, lienzo.height); };
+        imagen.src = campo.value;
+      }
+      function punto(e) {
+        var r = lienzo.getBoundingClientRect();
+        return [(e.clientX - r.left) * lienzo.width / r.width, (e.clientY - r.top) * lienzo.height / r.height];
+      }
+      var trazando = false, usaLapiz = false;
+      lienzo.addEventListener("pointerdown", function (e) {
+        // Con lápiz táctil, la palma apoyada en la pantalla no dibuja.
+        if (e.pointerType === "pen") usaLapiz = true;
+        if (trazando || (usaLapiz && e.pointerType === "touch")) return;
+        trazando = true;
+        lienzo.setPointerCapture(e.pointerId);
+        var p = punto(e);
+        ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.strokeStyle = "#111";
+        ctx.beginPath(); ctx.moveTo(p[0], p[1]);
+      });
+      lienzo.addEventListener("pointermove", function (e) {
+        if (!trazando || (usaLapiz && e.pointerType === "touch")) return;
+        // El lápiz manda muchos puntos juntos: se usan todos para que el trazo salga prolijo.
+        var puntos = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+        (puntos.length ? puntos : [e]).forEach(function (ev) {
+          var p = punto(ev);
+          ctx.lineTo(p[0], p[1]);
+        });
+        ctx.stroke();
+      });
+      function terminar(e) {
+        if (!trazando || (usaLapiz && e.pointerType === "touch")) return;
+        trazando = false;
+        campo.value = dibujado = lienzo.toDataURL("image/png");
+        campo.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      lienzo.addEventListener("pointerup", terminar);
+      lienzo.addEventListener("pointercancel", terminar);
+      borrar.addEventListener("click", function () {
+        ctx.clearRect(0, 0, lienzo.width, lienzo.height);
+        campo.value = dibujado = "";
+        campo.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      // Al restaurar lo guardado en el celular, el valor cambia sin dibujar: se redibuja.
+      document.addEventListener("change", mostrar);
+      mostrar();
+    });
+  }
+
+  // Campos de solo números (DNI, teléfono): lo que no es número se borra al tipear.
+  document.addEventListener("input", function (e) {
+    var c = e.target;
+    if (c.matches && c.matches('input[inputmode="numeric"]:not([type="number"])') && /\D/.test(c.value)) {
+      c.value = c.value.replace(/\D/g, "");
+    }
+  });
+
+  // Tipo de siniestro: ofrece solo sus motivos y muestra solo sus secciones ([data-seccion]).
+  // Los datos vienen de views.datos_por_tipo() en <script id="datos-tipos">.
+  function prepararTipoSiniestro() {
+    var fuente = document.getElementById("datos-tipos");
+    var tipo = document.querySelector('select[name="tipo"]');
+    if (!fuente || !tipo) return;
+    var leido = JSON.parse(fuente.textContent);
+    var datos = leido.tipos;
+    var detalles = leido.detalles;
+    var motivo = document.querySelector('select[name="motivo"]');
+    // Texto de ayuda del motivo elegido (Motivo.detalle: "Herida de arma, robo, riña").
+    var ayuda = null;
+    if (motivo) {
+      ayuda = document.createElement("p");
+      ayuda.className = "ayuda";
+      ayuda.hidden = true;
+      motivo.parentNode.insertBefore(ayuda, motivo.nextSibling);
+      motivo.setAttribute("aria-describedby", "ayuda-motivo");
+      ayuda.id = "ayuda-motivo";
+      motivo.addEventListener("change", mostrarAyuda);
+    }
+    function mostrarAyuda() {
+      var texto = detalles[motivo.value] || "";
+      ayuda.textContent = texto;
+      ayuda.hidden = !texto;
+    }
+    var marca = document.querySelector("[data-con-datos]");  // secciones que ya tienen datos
+    var conDatos = marca ? marca.dataset.conDatos.split(",") : [];
+    // Una sección que no corresponde al tipo igual se puede abrir: queda su botón en su lugar.
+    var abiertas = {};
+    var destino = location.hash.match(/^#seccion-(.+)$/);
+    if (destino) abiertas[destino[1]] = true;
+    document.querySelectorAll("[data-seccion]").forEach(function (bloque) {
+      var titulo = bloque.querySelector("h2");
+      var boton = document.createElement("button");
+      boton.type = "button"; boton.className = "btn gris chico abrir-seccion";
+      boton.textContent = "Cargar: " + (titulo ? titulo.textContent : bloque.dataset.seccion);
+      boton.addEventListener("click", function () { abiertas[bloque.dataset.seccion] = true; aplicar(); });
+      bloque.parentNode.insertBefore(boton, bloque);
+      bloque.botonAbrir = boton;
+    });
+    // El motivo que ya tenía el parte se respeta aunque no sea de su tipo (datos viejos):
+    // solo se borra si el usuario cambia el tipo.
+    var motivoGuardado = motivo ? motivo.value : "";
+    var tipoGuardado = tipo.value;
+    function aplicar() {
+      var elegido = datos[tipo.value];
+      if (motivo) {
+        var permitidos = elegido && elegido.motivos;
+        Array.prototype.forEach.call(motivo.options, function (o) {
+          var vale = !o.value || !permitidos || permitidos.indexOf(Number(o.value)) !== -1 ||
+                     (o.value === motivoGuardado && tipo.value === tipoGuardado);
+          o.hidden = o.disabled = !vale;
+        });
+        if (motivo.selectedOptions[0] && motivo.selectedOptions[0].disabled) motivo.value = "";
+        mostrarAyuda();
+      }
+      var secciones = elegido ? elegido.secciones : [];
+      document.querySelectorAll("[data-seccion]").forEach(function (bloque) {
+        var nombre = bloque.dataset.seccion;
+        bloque.hidden = !(abiertas[nombre] || secciones.indexOf(nombre) !== -1 || conDatos.indexOf(nombre) !== -1);
+        bloque.botonAbrir.hidden = !bloque.hidden;
+      });
+    }
+    tipo.addEventListener("change", aplicar);
+    aplicar();
+    if (destino) {
+      var aca = document.getElementById(location.hash.slice(1));
+      if (aca) aca.scrollIntoView();
+    }
+  }
+
+  document.addEventListener("change", function () { actualizarVisibles(document); });
+  document.addEventListener("DOMContentLoaded", function () {
+    agregarBotonesAhora(document);
+    prepararFirmas(document);
+    recordarTriage();
+    actualizarVisibles(document);
+    prepararFormsets();
+    prepararTipoSiniestro();
+    // Si el formulario volvió con errores, ir al primero (el aviso de arriba puede no verse).
+    var conError = document.querySelector(".tiene-error, .errorlist");
+    if (conError) {
+      conError.scrollIntoView({ block: "center" });
+      var campo = conError.querySelector("input:not([type=hidden]), select, textarea") ||
+                  (conError.closest(".tiene-error") || conError.parentElement).querySelector("input:not([type=hidden]), select, textarea");
+      if (campo) campo.focus({ preventScroll: true });
+    }
+    // Menú lateral en el celular: se abre con "Menú" y se cierra tocando afuera o con Escape.
+    var lateral = document.getElementById("lateral");
+    var boton = document.getElementById("abrir-menu");
+    var tapa = document.getElementById("tapa");
+    if (lateral && boton) {
+      var abrir = function (si) {
+        lateral.classList.toggle("abierto", si);
+        tapa.classList.toggle("visible", si);
+        boton.setAttribute("aria-expanded", si ? "true" : "false");
+      };
+      boton.addEventListener("click", function () { abrir(!lateral.classList.contains("abierto")); });
+      tapa.addEventListener("click", function () { abrir(false); });
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape") abrir(false); });
+    }
+  });
+})();
+</script>
+<script>
+/* Carga sin señal. Lo que se guarda en el celular queda en IndexedDB hasta que hay señal:
+   - "pendientes": un guardado de Completar por parte (el último), con lo que tenía la pantalla.
+   - "fotos": fotos sacadas desde Completar, con el id que después usa el servidor.
+   - "descargas": partes llevados al celular (sus pantallas quedan en el cache del service worker).
+   Cada vez que se abre una página con señal (o vuelve la conexión) se intenta enviar todo. */
+var Celular = (function () {
+  var CACHE = "partes-offline";
+  var disponible = "indexedDB" in window;
+  var noEnviar = null;  // parte cuya pantalla de Completar está abierta con datos del celular
+
+  function abrir() {
+    return new Promise(function (ok, mal) {
+      var pedido = indexedDB.open("bomberos-celular", 1);
+      pedido.onupgradeneeded = function () {
+        var db = pedido.result;
+        db.createObjectStore("pendientes", { keyPath: "parte" });
+        db.createObjectStore("fotos", { keyPath: "id" });
+        db.createObjectStore("descargas", { keyPath: "parte" });
+      };
+      pedido.onsuccess = function () { ok(pedido.result); };
+      pedido.onerror = function () { mal(pedido.error); };
+    });
+  }
+
+  function operar(almacen, modo, accion) {
+    if (!disponible) return Promise.resolve(modo === "readonly" ? undefined : null);
+    return abrir().then(function (db) {
+      return new Promise(function (ok, mal) {
+        var tx = db.transaction(almacen, modo);
+        var pedido = accion(tx.objectStore(almacen));
+        tx.oncomplete = function () { db.close(); ok(pedido.result); };
+        tx.onerror = function () { db.close(); mal(tx.error); };
+      });
+    });
+  }
+
+  function leer(almacen, clave) { return operar(almacen, "readonly", function (s) { return s.get(clave); }); }
+  function todos(almacen) {
+    return operar(almacen, "readonly", function (s) { return s.getAll(); })
+      .then(function (r) { return r || []; });
+  }
+  function guardar(almacen, valor) { return operar(almacen, "readwrite", function (s) { return s.put(valor); }); }
+  function borrar(almacen, clave) { return operar(almacen, "readwrite", function (s) { return s.delete(clave); }); }
+
+  function nuevoId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    // Sin HTTPS no existe randomUUID: se arma un UUID v4 a mano.
+    var b = crypto.getRandomValues(new Uint8Array(16));
+    b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+    var h = Array.prototype.map.call(b, function (x) { return x.toString(16).padStart(2, "0"); }).join("");
+    return h.slice(0, 8) + "-" + h.slice(8, 12) + "-" + h.slice(12, 16) + "-" + h.slice(16, 20) + "-" + h.slice(20);
+  }
+
+  function csrf() {
+    var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : "";
+  }
+
+  async function postear(url, cuerpo) {
+    var respuesta = await fetch(url, { method: "POST", body: cuerpo, credentials: "same-origin",
+                                       headers: { "X-CSRFToken": csrf() } });
+    var json = null;
+    try { json = await respuesta.json(); } catch (e) { /* login u otra página: no es JSON */ }
+    if (!json) json = { error: "No se pudo enviar: volvé a iniciar sesión y se envía solo." };
+    return json;
+  }
+
+  // navigator.onLine dice que hay red aunque la señal no alcance: se prueba con un pedido corto.
+  async function hayConexion() {
+    if (!navigator.onLine) return false;
+    var control = new AbortController();
+    var reloj = setTimeout(function () { control.abort(); }, 5000);
+    try {
+      var r = await fetch("{% url 'service_worker' %}", { method: "HEAD", cache: "no-store", signal: control.signal });
+      return r.ok;
+    } catch (e) {
+      return false;
+    } finally {
+      clearTimeout(reloj);
+    }
+  }
+
+  // Vuelve a bajar las pantallas de un parte descargado para que la copia quede al día.
+  async function actualizarCopia(parte) {
+    var descarga = await leer("descargas", parte);
+    if (!descarga || !("caches" in window)) return;
+    var cache = await caches.open(CACHE);
+    for (var i = 0; i < descarga.urls.length; i++) {
+      var r = await fetch(descarga.urls[i], { credentials: "same-origin" });
+      if (r.ok && !r.redirected) await cache.put(descarga.urls[i], r);
+    }
+  }
+
+  var avisos = [];
+  var cola = Promise.resolve();
+
+  // Los envíos van de a uno: si se pide otro mientras hay uno en curso, se hace después.
+  function sincronizar() {
+    cola = cola.then(enviarTodo, enviarTodo);
+    return cola;
+  }
+
+  async function enviarTodo() {
+    if (!disponible || !(await hayConexion())) return;
+    try {
+      var pendientes = await todos("pendientes");
+      for (var i = 0; i < pendientes.length; i++) {
+        var p = pendientes[i];
+        if (p.parte === noEnviar) continue;
+        var cuerpo = new URLSearchParams();
+        p.pares.forEach(function (par) { if (par[0] !== "csrfmiddlewaretoken") cuerpo.append(par[0], par[1]); });
+        var r;
+        try { r = await postear(p.url, cuerpo); } catch (e) { break; }  // se cortó la señal
+        var actual = await leer("pendientes", p.parte);
+        if (r.ok) {
+          if (actual && actual.envio === p.envio) await borrar("pendientes", p.parte);
+          avisos.push("Se enviaron los datos del parte " + p.titulo + " guardados en el celular.");
+          (r.avisos || []).forEach(function (a) { avisos.push(p.titulo + ": " + a); });
+          await actualizarCopia(p.parte);
+        } else if (actual && actual.envio === p.envio) {
+          actual.error = r.error + (r.errores && r.errores.length ? " " + r.errores.join(" · ") : "");
+          await guardar("pendientes", actual);
+        }
+      }
+      var fotos = await todos("fotos");
+      for (var j = 0; j < fotos.length; j++) {
+        var f = fotos[j];
+        var datos = new FormData();
+        datos.append("id", f.id);
+        datos.append("archivos", f.archivo, f.nombre);
+        datos.append("fecha_captura_local", f.fecha);
+        var rf;
+        try { rf = await postear(f.url, datos); } catch (e) { break; }
+        if (rf.ok) { await borrar("fotos", f.id); }
+        else { f.error = rf.error; await guardar("fotos", f); }
+      }
+    } finally {
+      mostrarEstado();
+    }
+  }
+
+  async function mostrarEstado() {
+    var caja = document.getElementById("estado-celular");
+    if (!caja) return;
+    var pendientes = await todos("pendientes");
+    var fotos = await todos("fotos");
+    var lineas = avisos.slice();
+    if (!navigator.onLine) lineas.unshift("Sin señal. Lo que guardes queda en el celular y se envía solo al volver la conexión.");
+    if (pendientes.length || fotos.length) {
+      var partes = pendientes.map(function (p) { return p.titulo; }).join(", ");
+      lineas.push("Guardado en el celular sin enviar: " +
+        (pendientes.length ? "datos del parte " + partes : "") +
+        (pendientes.length && fotos.length ? " y " : "") +
+        (fotos.length ? fotos.length + (fotos.length === 1 ? " foto" : " fotos") : "") + ".");
+    }
+    pendientes.concat(fotos).forEach(function (x) {
+      if (x.error) lineas.push((x.titulo ? x.titulo + ": " : "Foto: ") + x.error);
+    });
+    caja.innerHTML = "";
+    caja.hidden = !lineas.length;
+    lineas.forEach(function (texto) {
+      var linea = document.createElement("div");
+      linea.textContent = texto;
+      caja.appendChild(linea);
+    });
+    if ((pendientes.length || fotos.length) && navigator.onLine) {
+      var boton = document.createElement("button");
+      boton.type = "button"; boton.className = "btn gris chico"; boton.textContent = "Enviar ahora";
+      boton.addEventListener("click", sincronizar);
+      caja.appendChild(boton);
+    }
+  }
+
+  // Después de guardar Completar con señal, el servidor redirige con ?guardado=<id>:
+  // ese guardado ya llegó, así que se borra la copia del celular.
+  async function confirmarGuardado() {
+    var params = new URLSearchParams(location.search);
+    var envio = params.get("guardado");
+    if (!envio) return;
+    var pendientes = await todos("pendientes");
+    for (var i = 0; i < pendientes.length; i++) {
+      if (pendientes[i].envio === envio) {
+        await borrar("pendientes", pendientes[i].parte);
+        await actualizarCopia(pendientes[i].parte);
+      }
+    }
+    params.delete("guardado");
+    history.replaceState(null, "", location.pathname + (params.toString() ? "?" + params : ""));
+  }
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("{% url 'service_worker' %}").catch(function () {});
+  }
+  window.addEventListener("online", function () { mostrarEstado(); sincronizar(); });
+  // En el celular a veces vuelve internet sin que el navegador avise: si hay algo sin enviar, se reintenta.
+  setInterval(async function () {
+    try {
+      if (disponible && ((await todos("pendientes")).length || (await todos("fotos")).length)) {
+        await sincronizar();
+        mostrarEstado();
+      }
+    } catch (e) { /* sin IndexedDB */ }
+  }, 60000);
+  window.addEventListener("offline", mostrarEstado);
+  document.addEventListener("DOMContentLoaded", function () {
+    confirmarGuardado().catch(function () {}).then(sincronizar).catch(mostrarEstado);
+  });
+
+  return {
+    CACHE: CACHE, leer: leer, todos: todos, guardar: guardar, borrar: borrar, nuevoId: nuevoId,
+    csrf: csrf, postear: postear, hayConexion: hayConexion, sincronizar: sincronizar, mostrarEstado: mostrarEstado,
+    actualizarCopia: actualizarCopia,
+    noEnviar: function (parte) { noEnviar = parte; },
+  };
+})();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

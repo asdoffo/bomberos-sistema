@@ -1,0 +1,36 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}Móviles — Bomberos Villa María{% endblock %}
+
+{% block contenido %}
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.6rem;">
+    <h1 style="margin:0;">Móviles</h1>
+    {% if perms.partes.add_vehiculo %}<a class="btn" href="{% url 'nuevo_movil' %}">Nuevo móvil</a>{% endif %}
+  </div>
+  <p class="ayuda">Son las unidades que se eligen en los partes (U N°), las capacitaciones y los mantenimientos.</p>
+  {% if categorias %}
+  {% for categoria, moviles in categorias %}
+  <h2 style="margin:1.2rem 0 0.4rem 0;">{{ categoria }} <span class="ayuda" style="font-weight:400;">({{ moviles|length }})</span></h2>
+  <div class="tabla-scroll">
+  <table>
+    <tr><th>U N°</th><th>Tipo</th><th>Marca y modelo</th><th>Dominio</th><th>Km actual</th><th>Estado</th>{% if perms.partes.change_vehiculo %}<th></th>{% endif %}</tr>
+    {% for v in moviles %}
+    <tr>
+      <td><a href="{% url 'detalle_movil' v.pk %}"><b>{{ v.legajo }}</b></a></td>
+      <td>{{ v.tipo_vehiculo }}</td>
+      <td>{{ v.marca }} {{ v.modelo }}</td>
+      <td>{{ v.patente|default:"—" }}</td>
+      <td>{{ v.kilometraje_actual }}</td>
+      <td>{% if v.dado_de_baja %}De baja{% elif v.en_servicio %}En servicio{% else %}Fuera de servicio{% endif %}</td>
+      {% if perms.partes.change_vehiculo %}<td><a href="{% url 'editar_movil' v.pk %}">Editar</a></td>{% endif %}
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="vacio" style="text-align:center;padding:2rem 0;">Todavía no hay móviles cargados.{% if not perms.partes.add_vehiculo %} Los carga Estadística.{% endif %}</p>
+  {% endif %}
+</div>
+{% endblock %}

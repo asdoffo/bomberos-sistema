@@ -1,0 +1,39 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}Inicio — Bomberos Villa María{% endblock %}
+
+{% block estilos %}
+  .hola { padding:1.6rem 1.4rem; background:linear-gradient(120deg, var(--rojo), var(--rojo-oscuro)); color:#fff; border:0; }
+  .hola h1 { color:#fff; font-size:1.9rem; margin:0; }
+  .hola .datos-hola { margin-top:0.35rem; opacity:0.92; }
+  .hola .fecha { margin-top:0.9rem; font-size:0.9rem; opacity:0.85; }
+  .chip-sesion { display:inline-block; margin-top:0.8rem; font-size:0.8rem; background:rgba(255,255,255,0.18); padding:0.3rem 0.7rem; border-radius:999px; }
+  .pendiente { display:flex; justify-content:space-between; align-items:center; gap:0.8rem; flex-wrap:wrap;
+               padding:0.8rem 0.2rem; border-bottom:1px solid var(--borde); }
+  .pendiente:last-child { border-bottom:0; }
+{% endblock %}
+
+{% block contenido %}
+<div class="card hola">
+  <h1>Hola, {{ nombre }}</h1>
+  <div class="datos-hola">{{ user.groups.all|join:", "|default:"Sin rol asignado" }}{% if merito %} · N° {{ merito|stringformat:"03d" }}{% endif %}</div>
+  {% now "l j \d\e F \d\e Y" as hoy %}<div class="fecha">{{ hoy|capfirst }}</div>
+  {% if aviso_sesion %}<span class="chip-sesion" title="{{ aviso_sesion.detalle }}">{{ aviso_sesion.texto }}</span>{% endif %}
+</div>
+
+{% if not user.integrante %}
+<div class="msg error"><span>Tu usuario no está vinculado a ningún integrante. Pedile a Estadística que te asocie.</span></div>
+{% endif %}
+
+<div class="card">
+  <h2>Para hacer</h2>
+  {% for p in pendientes %}
+    <div class="pendiente"{% if p.alerta %} style="background:var(--rojo-suave);border-color:#f5b7b1;"{% endif %}>
+      <span>{% if p.alerta %}<b>{{ p.texto }}</b>{% else %}{{ p.texto }}{% endif %}</span>
+      <a class="btn gris chico" href="{{ p.url }}">{{ p.boton }}</a>
+    </div>
+  {% empty %}
+    <p class="vacio" style="margin:0;">No tenés nada pendiente.</p>
+  {% endfor %}
+</div>
+{% endblock %}

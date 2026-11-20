@@ -1,0 +1,70 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}Libro de guardia — Bomberos Villa María{% endblock %}
+
+{% block estilos %}
+  .libro { border-collapse:collapse; width:100%; }
+  .libro td { border-bottom:1px solid var(--borde); padding:0.5rem 0.4rem; vertical-align:top; }
+  .libro .hora { font-weight:700; white-space:nowrap; width:4.5rem; }
+  .libro .folio { color:var(--gris); font-size:0.78rem; white-space:nowrap; }
+  .libro .autor { color:var(--gris); font-size:0.8rem; }
+  .libro .corregida .texto { text-decoration:line-through; color:var(--gris); }
+  .libro .correccion { background:#fffbeb; }
+  .navegar-dia { display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; }
+{% endblock %}
+
+{% block contenido %}
+<div class="card">
+  <h1>Libro de guardia</h1>
+  <div class="navegar-dia">
+    <a class="btn gris chico" href="?fecha={{ anterior }}">← Día anterior</a>
+    <b>{{ dia|date:"l d/m/Y"|capfirst }}</b>
+    {% if not es_hoy %}<a class="btn gris chico" href="?fecha={{ siguiente }}">Día siguiente →</a>
+    <a class="btn gris chico" href="?">Hoy</a>{% endif %}
+  </div>
+  <p class="ayuda">Lo que se escribe en el libro de guardia. Las anotaciones no se editan ni se borran: si hay un error, el jefe
+    agrega una corrección que queda a su nombre y remite a la original.</p>
+  {% if alteradas %}<div class="msg error"><span><b>Atención:</b> {{ alteradas|length }} anotación(es) del libro fueron
+    alteradas por fuera del sistema (folios {% for a in alteradas %}{{ a.numero }}/{{ a.anio }}{% if not forloop.last %}, {% endif %}{% endfor %}).</span></div>
+  {% elif alteradas is not None %}<p class="ayuda">Libro íntegro: ninguna anotación fue alterada.</p>{% endif %}
+
+  {% if puede_anotar %}
+  <form method="post" novalidate style="margin-top:0.8rem;">
+    {% csrf_token %}
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.hora %}
+      <div class="campo-ancho">{% include "partes/_campo.html" with campo=form.texto %}</div>
+    </div>
+    <div class="acciones"><button type="submit" class="btn">Anotar</button></div>
+  </form>
+  {% endif %}
+</div>
+
+<div class="card">
+  {% if anotaciones %}
+  <table class="libro">
+    {% for a in anotaciones %}
+    <tr class="{% if a.correcciones.all %}corregida{% endif %}{% if a.corrige %} correccion{% endif %}">
+      <td class="hora">{{ a.hora|time:"H:i" }} Hs.</td>
+      <td>
+        <div class="texto">{{ a.texto|linebreaksbr }}</div>
+        {% if a.corrige %}<div class="ayuda" style="margin:0.2rem 0 0 0;">Corrige el folio {{ a.corrige.numero }}/{{ a.corrige.anio }}. Motivo: {{ a.motivo_correccion }}</div>{% endif %}
+        <div class="autor">{{ a.autor }} · cargado el {{ a.registrada|date:"d/m/Y H:i" }} · sello {{ a.codigo }}</div>
+        {% if puede_corregir_libro and not a.corrige %}
+        <details style="margin-top:0.3rem;"><summary class="ayuda">Corregir esta anotación</summary>
+          <form method="post" action="{% url 'corregir_anotacion' a.pk %}" style="margin-top:0.4rem;">
+            {% csrf_token %}
+            <textarea name="texto" rows="2" required>{{ a.texto }}</textarea>
+            <input type="text" name="motivo" required minlength="10" placeholder="Motivo de la corrección" style="margin-top:0.3rem;">
+            <button type="submit" class="btn gris chico" style="margin-top:0.3rem;">Agregar corrección</button>
+          </form>
+        </details>
+        {% endif %}
+      </td>
+      <td class="folio">Folio {{ a.numero }}/{{ a.anio }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="vacio">No hay anotaciones {% if es_hoy %}hoy{% else %}ese día{% endif %}.</p>{% endif %}
+</div>
+{% endblock %}

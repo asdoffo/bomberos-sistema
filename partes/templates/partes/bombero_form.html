@@ -1,0 +1,40 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}{% if integrante.pk %}Editar ficha{% else %}Nuevo integrante{% endif %} — Bomberos Villa María{% endblock %}
+
+{% block contenido %}
+<form method="post" enctype="multipart/form-data" novalidate>
+  {% csrf_token %}
+  <div class="card">
+    <h1>{% if integrante.pk %}Ficha de {{ integrante.apellido }}, {{ integrante.nombre }}{% else %}Nuevo integrante{% endif %}</h1>
+    <p class="ayuda" style="margin:0;">Los mismos datos que la ficha de RUBA. Solo legajo, apellido, nombre, DNI, rango y estado son obligatorios.</p>
+    {% if form.non_field_errors %}<div class="msg error" style="margin-top:0.8rem;">{{ form.non_field_errors }}</div>{% endif %}
+  </div>
+
+  {% for titulo, campos in form.secciones %}
+  <div class="card">
+    <h2>{{ titulo }}</h2>
+    <div class="campos">
+      {% for campo in campos %}{% include "partes/_campo.html" with campo=campo %}{% endfor %}
+      {% if forloop.counter == 4 %}{% include "partes/_campo.html" with campo=form.numero_merito %}{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <div class="card">
+    <h2>Familiares</h2>
+    {% include "partes/_formset.html" with formset=familiares nombre="familiar" %}
+  </div>
+
+  <div class="card">
+    <h2>Historial</h2>
+    <div class="ayuda">Pases entre cuerpos, licencias y bajas.</div>
+    {% include "partes/_formset.html" with formset=historial nombre="registro" %}
+  </div>
+
+  <div class="barra-guardar">
+    <button type="submit" class="btn">Guardar</button>
+    <a class="btn gris" href="{% if integrante.pk %}{% url 'ficha_bombero' integrante.pk %}{% else %}{% url 'bomberos' %}{% endif %}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

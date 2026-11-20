@@ -1,0 +1,19 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}{{ titulo }} — Parte {{ parte.numero_correlativo }}/{{ parte.anio }}{% endblock %}
+
+{% block contenido %}
+<div class="card" style="max-width:720px;">
+  <h1>{{ titulo }}</h1>
+  <div class="subtitulo">Parte {{ parte.numero_correlativo }}/{{ parte.anio }} · {{ parte.tipo }} — {{ parte.ubicacion }}</div>
+
+  <form method="post" novalidate {% if multipart %}enctype="multipart/form-data"{% endif %}>
+    {% csrf_token %}
+    {% include "partes/_campos.html" with form=form %}
+    <div class="barra-guardar" style="margin-top:1.2rem;">
+      <button type="submit" class="btn">Guardar</button>
+      <a class="btn gris" href="{% url 'detalle_parte' parte.pk %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

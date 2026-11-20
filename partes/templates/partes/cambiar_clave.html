@@ -1,0 +1,20 @@
+{% extends "partes/base.html" %}
+{% comment %}Cambiar la contraseña (PasswordChangeView de Django, ver config/urls.py).
+La clave inicial de cada integrante es su usuario + "_358": conviene cambiarla al primer ingreso.{% endcomment %}
+
+{% block titulo %}Cambiar contraseña — Bomberos Villa María{% endblock %}
+
+{% block contenido %}
+<div class="card" style="max-width:560px;">
+  <h1>Cambiar contraseña</h1>
+  <div class="subtitulo">Usuario <b>{{ user.username }}</b>. La sesión sigue abierta después del cambio.</div>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "partes/_campos.html" with form=form %}
+    <div class="barra-guardar" style="margin-top:1.2rem;">
+      <button type="submit" class="btn">Cambiar contraseña</button>
+      <a class="btn gris" href="{% url 'mi_perfil' %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

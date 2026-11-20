@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parte de siniestro: mejoras (mock)</title>
+<style>
+  :root { --rojo:#c0392b; --rojo-suave:#fdecea; --fondo:#f3f4f6; --texto:#1f2937; --gris:#6b7280; --borde:#e5e7eb; --azul:#2563eb; --verde:#15803d; --ambar:#b45309; }
+  * { box-sizing:border-box; }
+  body { font-family:system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background:var(--fondo); color:var(--texto); margin:0; padding:1rem; line-height:1.45; }
+  h1 { color:var(--rojo); font-size:1.35rem; margin:0 0 .2rem 0; }
+  h2 { font-size:1.05rem; margin:0 0 .5rem 0; display:flex; align-items:center; gap:.5rem; }
+  .contenedor { max-width:880px; margin:0 auto; }
+  .card { background:#fff; padding:1rem 1.2rem; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.08); border:1px solid var(--borde); margin-bottom:1rem; scroll-margin-top:4.5rem; }
+  .btn { display:inline-block; background:var(--rojo); color:#fff; border:0; padding:.6rem 1rem; border-radius:8px; font-weight:600; font-size:.95rem; cursor:pointer; text-decoration:none; font-family:inherit; text-align:center; }
+  .btn.gris { background:#e5e7eb; color:#111; } .btn.verde { background:var(--verde); } .btn.grande { padding:.9rem 1rem; font-size:1.05rem; }
+  .btn.chico { padding:.3rem .6rem; font-size:.8rem; }
+  .acciones { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+  .ayuda { color:var(--gris); font-size:.85rem; }
+  .aviso-mock { max-width:880px; margin:0 auto 1rem auto; background:#fef9c3; border:1px dashed #ca8a04; border-radius:8px; padding:.6rem .9rem; font-size:.85rem; }
+  .pestanas { display:flex; gap:.3rem; margin-top:.5rem; flex-wrap:wrap; }
+  .pestanas button { font:inherit; font-size:.85rem; padding:.35rem .8rem; border-radius:999px; border:1px solid #ca8a04; background:#fff; cursor:pointer; }
+  .pestanas button.activa { background:#ca8a04; color:#fff; }
+  .vista { display:none; } .vista.activa { display:block; }
+  label { display:block; font-size:.85rem; font-weight:600; margin:.6rem 0 .2rem 0; }
+  input, select, textarea { width:100%; font:inherit; padding:.5rem .6rem; border:1px solid #cbd5e1; border-radius:8px; background:#fff; }
+  .campos { display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:0 .8rem; }
+  .ancho { grid-column:1 / -1; }
+
+  /* Las sugerencias del mock */
+  .cambio { display:block; background:#fffbeb; border-left:4px solid #f59e0b; border-radius:6px; padding:.45rem .65rem; font-size:.82rem; margin:.5rem 0; color:#78350f; }
+  .cambio::before { content:"💡 Cambio: "; font-weight:700; }
+
+  .ok-dir { border:1px solid #bbf7d0; background:#f0fdf4; border-radius:8px; padding:.45rem .65rem; font-size:.88rem; margin-top:.4rem; }
+  .mini-mapa { margin-top:.5rem; }
+  .mini-mapa svg { width:100%; height:auto; display:block; border-radius:8px; border:1px solid var(--borde); }
+  .plegable summary { cursor:pointer; font-weight:600; font-size:.92rem; padding:.3rem 0; }
+
+  /* Detalle en curso */
+  .cronometro { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; background:#111827; color:#fff; border-radius:10px; padding:.8rem 1rem; margin-top:.8rem; }
+  .cronometro b { font-size:2rem; font-variant-numeric:tabular-nums; letter-spacing:.03em; }
+  .cronometro span { color:#d1d5db; font-size:.88rem; }
+  .pasos { display:flex; margin:1rem 0 .3rem 0; }
+  .paso { flex:1; text-align:center; font-size:.78rem; color:var(--gris); position:relative; }
+  .paso::before { content:"○"; display:block; width:28px; height:28px; line-height:26px; margin:0 auto .25rem auto; border-radius:50%; border:2px solid #d1d5db; background:#fff; position:relative; z-index:1; }
+  .paso::after { content:""; position:absolute; top:13px; left:-50%; width:100%; height:2px; background:#d1d5db; }
+  .paso:first-child::after { display:none; }
+  .paso.hecho { color:var(--verde); font-weight:600; } .paso.hecho::before { content:"✓"; background:var(--verde); border-color:var(--verde); color:#fff; } .paso.hecho::after { background:var(--verde); }
+  .paso small { display:block; font-weight:400; color:var(--gris); }
+  .marcar { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin-top:.8rem; }
+  .hecho-chip { text-align:center; padding:.9rem; border-radius:8px; background:#ecfdf5; color:var(--verde); font-weight:700; }
+  .checklist { list-style:none; padding:0; margin:.3rem 0 0 0; }
+  .checklist li { display:flex; justify-content:space-between; gap:.6rem; align-items:center; padding:.45rem 0; border-bottom:1px solid var(--borde); font-size:.9rem; }
+  .checklist li:last-child { border-bottom:0; }
+  .estado-ok { color:var(--verde); font-weight:700; } .estado-falta { color:#b91c1c; font-weight:700; } .estado-op { color:var(--gris); }
+
+  /* Completar */
+  .indice { position:sticky; top:0; z-index:6; background:rgba(243,244,246,.97); padding:.5rem 0; margin:0 0 .6rem 0; display:flex; gap:.35rem; overflow-x:auto; }
+  .indice a { flex:none; text-decoration:none; font-size:.8rem; font-weight:600; padding:.35rem .65rem; border-radius:999px; border:1px solid var(--borde); background:#fff; color:#374151; white-space:nowrap; }
+  .indice a.ok { border-color:#86efac; } .indice a.ok::before { content:"✓ "; color:var(--verde); }
+  .indice a.falta { border-color:#fca5a5; background:#fef2f2; } .indice a.falta::before { content:"! "; color:#b91c1c; }
+  .indice a.vacia::before { content:"– "; color:var(--gris); }
+  .numero { display:inline-flex; width:1.5rem; height:1.5rem; border-radius:50%; background:var(--rojo); color:#fff; font-size:.8rem; align-items:center; justify-content:center; flex:none; }
+  .falta-aqui { background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:.4rem .6rem; font-size:.85rem; color:#991b1b; margin-bottom:.5rem; }
+  .grilla-merito { display:grid; grid-template-columns:repeat(auto-fill, minmax(64px, 1fr)); gap:.35rem; margin-top:.4rem; }
+  .grilla-merito span { text-align:center; border:1px solid var(--borde); border-radius:8px; padding:.4rem .2rem; font-weight:700; font-size:.9rem; }
+  .grilla-merito span small { display:block; font-weight:400; font-size:.65rem; color:var(--gris); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .grilla-merito span.on { background:var(--rojo); color:#fff; border-color:var(--rojo); } .grilla-merito span.on small { color:#fde2e0; }
+  .tabla { width:100%; border-collapse:collapse; font-size:.85rem; margin-top:.5rem; }
+  .tabla td, .tabla th { padding:.35rem .4rem; border-bottom:1px solid var(--borde); text-align:left; }
+  .tabla th { font-size:.72rem; color:var(--gris); text-transform:uppercase; }
+  .segmento { display:inline-flex; border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; }
+  .segmento span { padding:.25rem .55rem; font-size:.78rem; } .segmento span.on { background:#1f2937; color:#fff; }
+  .persona-card { border:1px solid var(--borde); border-radius:10px; margin-top:.6rem; }
+  .persona-card summary { list-style:none; cursor:pointer; padding:.6rem .8rem; display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; }
+  .persona-card summary::-webkit-details-marker { display:none; }
+  .persona-card .cuerpo { padding:0 .8rem .8rem .8rem; border-top:1px solid var(--borde); }
+  .triage { display:flex; gap:.35rem; flex-wrap:wrap; margin-top:.3rem; }
+  .triage span { padding:.45rem .7rem; border-radius:8px; font-size:.82rem; font-weight:700; border:2px solid transparent; }
+  .t-rojo { background:#fee2e2; color:#991b1b; } .t-amarillo { background:#fef9c3; color:#854d0e; } .t-verde { background:#dcfce7; color:#14532d; }
+  .t-negro { background:#e5e7eb; color:#111; } .t-sin { background:#f3f4f6; color:#374151; }
+  .triage span.on { border-color:#1f2937; }
+  .chip { display:inline-block; font-size:.72rem; font-weight:700; padding:.08rem .5rem; border-radius:999px; }
+  .fotos { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.4rem; }
+  .foto { width:88px; height:66px; border-radius:6px; background:repeating-linear-gradient(45deg,#e5e7eb,#e5e7eb 8px,#f3f4f6 8px,#f3f4f6 16px); display:flex; align-items:flex-end; justify-content:center; font-size:.65rem; color:var(--gris); padding-bottom:.2rem; }
+  .barra-guardar { position:sticky; bottom:0; background:rgba(255,255,255,.97); border-top:1px solid var(--borde); padding:.6rem .8rem; margin:0 -1rem; display:flex; gap:.6rem; align-items:center; justify-content:space-between; flex-wrap:wrap; z-index:5; }
+  .barra-guardar .estado { font-size:.82rem; color:var(--gris); }
+  .barra-guardar .estado b { color:var(--ambar); }
+
+  @media (max-width:560px) { body { padding:.5rem; } .marcar { grid-template-columns:1fr; } .barra-guardar { margin:0 -.5rem; } }
+</style>
+</head>
+<body>
+
+<div class="aviso-mock">
+  <b>Mock con sugerencias</b> sobre la carga del parte. Cada <b>💡 Cambio</b> marca algo distinto de la pantalla actual; lo que no está marcado sigue como hoy. Datos inventados. Pantallas:
+  <div class="pestanas">
+    <button type="button" class="activa" data-vista="nuevo">1. Nuevo parte</button>
+    <button type="button" data-vista="curso">2. Parte en curso (detalle)</button>
+    <button type="button" data-vista="completar">3. Completar / corregir (celular)</button>
+  </div>
+</div>
+
+<div class="contenedor">
+
+<!-- ============================================================ 1. NUEVO PARTE -->
+<section class="vista activa" id="nuevo">
+  <div class="card">
+    <h1>Nuevo parte de siniestro</h1>
+    <div class="ayuda">Fecha y llamada Hs.: <b>15/11/2026 21:42</b> (se registran solas) · Personal de guardia: <b>118 — Luna, Esteban</b></div>
+    <span class="cambio">en la emergencia se carga primero lo que hace falta para salir: <b>tipo, motivo y dirección</b>. Los datos de quién llamó quedan abajo y se pueden completar después.</span>
+
+    <h2 style="margin-top:.8rem;">¿Qué pasa y dónde?</h2>
+    <div class="campos">
+      <div><label>Tipo *</label><select><option>02 · Accidentes</option></select></div>
+      <div><label>Motivo *</label><select><option>114 · Colisión auto-moto</option></select></div>
+      <div class="ancho">
+        <label>Calle y altura * <span class="ayuda" style="font-weight:400;">(o «Calle y Calle» si es una esquina)</span></label>
+        <input value="Belgrano 450">
+        <div class="ok-dir">✔ <b>Belgrano 450</b> · Barrio Centro · ubicada en el mapa · a <b>570 m</b> del cuartel</div>
+        <span class="cambio">la esquina se escribe directo («General Paz y Buenos Aires»), sin tildar «Es una esquina» (el sistema ya la reconoce así), y un mapa chico confirma que el punto es el correcto antes de crear el parte.</span>
+        <details class="plegable mini-mapa" open>
+          <summary>Ver en el mapa</summary>
+          <svg viewBox="0 0 640 200" role="img" aria-label="Mapa: ubicación del siniestro y del cuartel">
+            <rect width="640" height="200" fill="#f8fafc"/>
+            <g stroke="#e2e8f0" stroke-width="10">
+              <line x1="0" y1="50" x2="640" y2="50"/><line x1="0" y1="120" x2="640" y2="120"/><line x1="0" y1="185" x2="640" y2="185"/>
+              <line x1="90" y1="0" x2="90" y2="200"/><line x1="200" y1="0" x2="200" y2="200"/><line x1="310" y1="0" x2="310" y2="200"/>
+              <line x1="420" y1="0" x2="420" y2="200"/><line x1="530" y1="0" x2="530" y2="200"/>
+            </g>
+            <line x1="485" y1="40" x2="310" y2="120" stroke="#1f2937" stroke-dasharray="4 3"/>
+            <circle cx="310" cy="120" r="11" fill="#c0392b" stroke="#fff" stroke-width="3"/>
+            <text x="310" y="150" font-size="12" font-weight="700" fill="#c0392b" text-anchor="middle">Belgrano 450</text>
+            <rect x="477" y="32" width="16" height="16" rx="3" fill="#1f2937"/><text x="499" y="28" font-size="11" fill="#1f2937">Cuartel</text>
+          </svg>
+          <div class="ayuda">Si el punto está mal, se arrastra al lugar correcto.</div>
+        </details>
+      </div>
+      <div><label>Barrio</label><input value="Centro"></div>
+      <div><label>Referencias</label><input placeholder="Ej: frente a la escuela"></div>
+    </div>
+
+    <details class="plegable" style="margin-top:.6rem;">
+      <summary>Bomberos que viven cerca (3 a menos de 500 m)</summary>
+      <div class="ayuda">Lista del plan «bomberos cercanos»: distancia, domicilio y teléfono. Se muestra u oculta con este botón.</div>
+    </details>
+
+    <h2 style="margin-top:1rem;">Llamada</h2>
+    <div class="campos">
+      <div><label>Llamado</label><select><option>Telefónico</option><option>Radio</option><option>En persona</option></select></div>
+      <div><label>TE de donde llaman</label><input value="353 400 0000" inputmode="tel"></div>
+      <div><label>Quién llama</label><input placeholder="Nombre o identificación"></div>
+      <div><label style="margin-top:1.9rem;font-weight:400;"><input type="checkbox" style="width:auto;"> Toque de sirena</label></div>
+      <div class="ancho"><label>Observaciones</label><textarea rows="2"></textarea></div>
+    </div>
+  </div>
+  <div class="barra-guardar" style="margin:0;">
+    <span class="estado">Al crear se abre el parte para marcar la salida.</span>
+    <div class="acciones"><a class="btn gris" href="#">Cancelar</a><button class="btn grande" type="button" data-ir="curso">Crear parte</button></div>
+  </div>
+</section>
+
+<!-- ============================================================ 2. EN CURSO -->
+<section class="vista" id="curso">
+  <div class="card">
+    <div class="acciones" style="justify-content:space-between;align-items:flex-start;">
+      <div>
+        <h1 style="font-size:1.6rem;">Control de salida N° 87/2026</h1>
+        <div class="ayuda">02 · Accidentes · 114 · Colisión auto-moto · Belgrano 450 (Centro)</div>
+      </div>
+      <span class="chip" style="background:#dbeafe;color:#1e3a8a;">En curso</span>
+    </div>
+
+    <div class="cronometro">
+      <b>00:18:07</b>
+      <span>desde la llamada (21:42) · salida 21:45 · llegada 21:53 · Móvil 12 · 6 integrantes</span>
+    </div>
+    <span class="cambio">un reloj que corre desde la llamada, para el guardia que sigue la salida desde el cuartel. Al marcar el regreso se detiene y muestra el total.</span>
+
+    <div class="pasos">
+      <div class="paso hecho">Llamada<small>21:42</small></div>
+      <div class="paso hecho">Salida<small>21:45 · 3 min</small></div>
+      <div class="paso hecho">Llegada<small>21:53 · 8 min</small></div>
+      <div class="paso">Retorno</div>
+      <div class="paso">Cerrado</div>
+    </div>
+
+    <div class="marcar">
+      <div class="hecho-chip">Llegada 21:53 ✓</div>
+      <button class="btn grande" type="button">Marcar regreso ahora</button>
+    </div>
+    <p class="ayuda" style="margin:.4rem 0 0 0;">¿Se marcó una hora mal? <a href="#">Corregir horarios</a></p>
+    <span class="cambio">los botones de las horas, grandes y en un solo lugar (hoy están al lado de «Completar»), y un enlace directo para corregir una hora marcada por error.</span>
+
+    <div class="acciones" style="margin-top:.8rem;">
+      <a class="btn" href="#" data-ir="completar">Completar datos</a>
+      <a class="btn gris" href="#">Descargar en el celular</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Para cerrar el parte</h2>
+    <ul class="checklist">
+      <li><span>Salida, llegada y regreso</span><span class="estado-falta">falta el regreso</span></li>
+      <li><span>Personal que concurrió</span><span class="estado-ok">✓ 6 integrantes</span></li>
+      <li><span>Km de regreso del Móvil 12</span><span class="estado-falta">falta · <a href="#" data-ir="completar">cargar</a></span></li>
+      <li><span>Damnificados: lesión de los que tienen triage</span><span class="estado-falta">falta 1 · <a href="#" data-ir="completar">cargar</a></span></li>
+      <li><span>Vehículos siniestrados</span><span class="estado-ok">✓ 2</span></li>
+      <li><span>Combustible (si se cargó): litros y costo</span><span class="estado-op">no se cargó</span></li>
+    </ul>
+    <span class="cambio">en lugar de «Para poder cerrarlo falta» solo con lo que falta, una lista fija con <b>lo que está y lo que falta</b>, y cada renglón lleva directo a la sección para cargarlo. La misma lista aparece arriba de Completar.</span>
+    <details class="plegable" style="margin-top:.4rem;"><summary style="color:var(--gris);">Cerrar y firmar el parte (se habilita cuando no falta nada)</summary></details>
+  </div>
+
+  <div class="card">
+    <h2>Resumen</h2>
+    <div class="ayuda">Llamada, ubicación, unidad, personal, rodados, damnificados, entidades, fotos y observaciones: <b>igual que hoy</b>.</div>
+  </div>
+</section>
+
+<!-- ============================================================ 3. COMPLETAR -->
+<section class="vista" id="completar">
+  <div class="card" style="margin-bottom:.4rem;">
+    <h1>Completar · Control de salida N° 87/2026</h1>
+    <div class="ayuda">02 · Accidentes · Belgrano 450 · llamada 21:42 · Personal de guardia: Luna, E.</div>
+    <div class="falta-aqui" style="margin-top:.6rem;"><b>Para cerrar falta:</b> el regreso, el km de regreso y la lesión de 1 damnificado.</div>
+  </div>
+
+  <nav class="indice" aria-label="Secciones del parte">
+    <a href="#c-salida" class="falta">Salida y unidad</a>
+    <a href="#c-personal" class="ok">Personal (6)</a>
+    <a href="#c-ubicacion" class="ok">Tipo y ubicación</a>
+    <a href="#c-rodados" class="ok">Rodados (2)</a>
+    <a href="#c-damnificados" class="falta">Damnificados (3)</a>
+    <a href="#c-entidades" class="ok">Entidades (1)</a>
+    <a href="#c-fotos" class="vacia">Fotos</a>
+    <a href="#c-obs" class="vacia">Observaciones</a>
+  </nav>
+  <span class="cambio">un índice fijo arriba con todas las secciones y su estado (✓ completa · ! falta algo para cerrar · – vacía). Tocando una, salta ahí. Hoy la pantalla es una sola página larga sin índice, y lo que falta solo se ve en el detalle.</span>
+
+  <div class="card" id="c-salida">
+    <h2><span class="numero">1</span>Salida, unidad y combustible</h2>
+    <span class="cambio">todo lo de la unidad junto: horarios, móvil, km y combustible. Hoy los horarios están en la primera tarjeta y la unidad y el combustible casi al final.</span>
+    <div class="falta-aqui">Falta: hora de regreso y km de regreso.</div>
+    <div class="campos">
+      <div><label>Autorizó</label><select><option>Fernández, Raúl</option></select></div>
+      <div><label>Unidad</label><select><option>Móvil 12 — MB Sprinter</option></select></div>
+      <div><label>Salida Hs.</label><input value="21:45" inputmode="numeric"></div>
+      <div><label>Llegada Hs.</label><input value="21:53" inputmode="numeric"></div>
+      <div><label>Regreso Hs.</label><input placeholder="--:--" inputmode="numeric"></div>
+      <div><label>Km de regreso</label><input placeholder="mayor a 54.870" inputmode="numeric"><div class="ayuda">Último km anotado: 54.870.</div></div>
+      <div><label>Nivel de combustible</label><select><option>1/2</option></select></div>
+      <div><label style="margin-top:1.9rem;font-weight:400;"><input type="checkbox" style="width:auto;"> Se cargó combustible</label></div>
+    </div>
+    <span class="cambio">(menor) teclado numérico en el celular también para el DNI y el teléfono de damnificados, negativas e incendio. Hoy solo lo tienen el teléfono de quien llama y el N° de mérito; horas, km y edad ya lo traen.</span>
+  </div>
+
+  <div class="card" id="c-personal">
+    <h2><span class="numero">2</span>Personal que concurrió <span class="chip" style="background:#dcfce7;color:#14532d;">6</span></h2>
+    <span class="cambio">el personal pasa arriba (hoy está al final): es lo que más se necesita para cerrar y para las estadísticas.</span>
+    <input type="search" placeholder="Buscar por N° o apellido (Enter marca)">
+    <div class="grilla-merito">
+      <span class="on">041<small>Pérez</small></span><span>052<small>Acosta</small></span><span class="on">087<small>Rodríguez</small></span><span>095<small>Benítez</small></span>
+      <span class="on">112<small>Gómez</small></span><span class="on">118<small>Luna</small></span><span>121<small>Castro</small></span><span class="on">125<small>Sosa</small></span>
+      <span class="on">131<small>Medina</small></span><span>140<small>Herrera</small></span>
+    </div>
+    <table class="tabla">
+      <tr><th>Integrante</th><th>Concurrencia</th><th>Participación</th></tr>
+      <tr><td><b>041</b> Pérez, J. C.</td><td><span class="segmento"><span class="on">Cuartel</span><span>Convocado</span></span></td><td><span class="segmento"><span class="on">Interv.</span><span>Apresto</span><span>Chofer</span></span></td></tr>
+      <tr><td><b>087</b> Rodríguez, P.</td><td><span class="segmento"><span>Cuartel</span><span class="on">Convocado</span></span></td><td><span class="segmento"><span class="on">Interv.</span><span>Apresto</span><span>Chofer</span></span></td></tr>
+      <tr><td><b>118</b> Luna, E.</td><td><span class="segmento"><span class="on">Cuartel</span><span>Convocado</span></span></td><td><span class="segmento"><span>Interv.</span><span>Apresto</span><span class="on">Chofer</span></span></td></tr>
+    </table>
+    <div class="ayuda">… y 3 más. Personal E-100: <b>Romero, Ana</b>.</div>
+    <span class="cambio">concurrencia y participación como botones de un toque, en lugar de listas desplegables.</span>
+  </div>
+
+  <div class="card" id="c-ubicacion">
+    <h2><span class="numero">3</span>Tipo y ubicación</h2>
+    <div class="campos">
+      <div><label>Tipo</label><select><option>02 · Accidentes</option></select></div>
+      <div><label>Motivo</label><select><option>114 · Colisión auto-moto</option></select></div>
+      <div class="ancho"><label>Calle y altura (o esquina)</label><input value="Belgrano 450">
+        <div class="ok-dir">✔ Barrio Centro · ubicada en el mapa</div></div>
+      <div><label>Barrio</label><input value="Centro"></div>
+      <div><label>Referencias</label><input></div>
+    </div>
+    <p style="margin:.6rem 0 0 0;"><button class="btn gris chico" type="button">📍 Estoy en el lugar: usar mi ubicación GPS</button></p>
+    <span class="cambio">tipo y motivo juntos (hoy el motivo queda después de la dirección), y la dirección con el mismo buscador de calles y barrio que el alta (hoy acá son campos sueltos). El botón de GPS pasa a esta sección (hoy está debajo de Observaciones).</span>
+  </div>
+
+  <div class="card" id="c-rodados">
+    <h2><span class="numero">4</span>Vehículos siniestrados <span class="chip" style="background:#e5e7eb;">2</span></h2>
+    <div class="ayuda">1° · Fiat Palio · AB123CD &nbsp;·&nbsp; 2° · Honda Wave · A123BCD</div>
+    <div class="ayuda">(Formulario de cada rodado: igual que hoy.)</div>
+  </div>
+
+  <div class="card" id="c-damnificados">
+    <h2><span class="numero">5</span>Damnificados <span class="chip" style="background:#e5e7eb;">3</span></h2>
+    <span class="cambio">cada damnificado es una tarjeta que se abre y se cierra, con un resumen arriba (nombre, rodado, triage y si falta algo). Con 3 o 4 personas, la pantalla deja de ser una lista interminable de campos.</span>
+    <details class="persona-card">
+      <summary><b>García, Marcos</b> · 34 años · Conductor del 1° <span class="chip t-verde">Verde</span> <span class="ayuda">trasladado al Hospital Pasteur</span></summary>
+    </details>
+    <details class="persona-card" open>
+      <summary><b>Ruiz, Sofía</b> · 19 años · Conductora del 2° <span class="chip t-amarillo">Amarillo</span> <span class="chip" style="background:#fee2e2;color:#991b1b;">falta la lesión</span></summary>
+      <div class="cuerpo">
+        <div class="campos">
+          <div><label>Apellido y nombre</label><input value="Ruiz, Sofía"></div>
+          <div><label>Edad</label><input value="19" inputmode="numeric"></div>
+          <div><label>DNI</label><input value="44.000.000" inputmode="numeric"></div>
+        </div>
+        <label>Triage</label>
+        <div class="triage"><span class="t-rojo">Rojo</span><span class="t-amarillo on">Amarillo</span><span class="t-verde">Verde</span><span class="t-negro">Negro</span><span class="t-sin">Sin lesiones</span></div>
+        <label>Descripción de la lesión <span style="color:#b91c1c;">(falta para cerrar)</span></label>
+        <textarea rows="2" placeholder="Ej: fractura expuesta de tibia izquierda"></textarea>
+        <div class="ayuda">Contacto, traslado y firma de quien recibe: igual que hoy.</div>
+      </div>
+    </details>
+    <details class="persona-card">
+      <summary><b>Peatón sin identificar</b> · Peatón <span class="chip t-sin">Sin lesiones</span> <span class="ayuda">negativa a la atención registrada</span></summary>
+    </details>
+    <p style="margin:.6rem 0 0 0;"><button class="btn gris chico" type="button">+ Agregar damnificado</button></p>
+  </div>
+
+  <div class="card" id="c-entidades">
+    <h2><span class="numero">6</span>Apoyo y entidades</h2>
+    <div class="ayuda">Policía · móvil 245 · a cargo Of. Díaz. Se solicitó apoyo: No. (Igual que hoy, en una sola tarjeta.)</div>
+  </div>
+
+  <div class="card" id="c-fotos">
+    <h2><span class="numero">7</span>Fotos</h2>
+    <div class="fotos"><div class="foto">en el celular</div><div class="foto">en el celular</div><div class="foto" style="background:#e0e7ff;">+ Foto</div></div>
+    <span class="cambio">las fotos se ven en miniatura, incluso las que todavía están en el celular sin enviar (hoy solo se ve el texto «2 fotos guardadas»).</span>
+  </div>
+
+  <div class="card" id="c-obs">
+    <h2><span class="numero">8</span>Observaciones</h2>
+    <textarea rows="3"></textarea>
+  </div>
+
+  <div class="barra-guardar">
+    <span class="estado"><b>● Guardado en el celular 21:58</b> · sin enviar (sin señal)</span>
+    <div class="acciones"><a class="btn gris" href="#">Cancelar</a><button class="btn" type="button">Guardar</button></div>
+  </div>
+  <span class="cambio">el estado del guardado (enviado, guardado en el celular, error) queda siempre a la vista en la barra de abajo. Hoy aparece solo arriba de todo, y al bajar no se ve.</span>
+</section>
+
+</div>
+
+<script>
+  function ir(vista) {
+    document.querySelectorAll(".vista").forEach(v => v.classList.toggle("activa", v.id === vista));
+    document.querySelectorAll(".pestanas button").forEach(b => b.classList.toggle("activa", b.dataset.vista === vista));
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll(".pestanas button").forEach(b => b.addEventListener("click", () => ir(b.dataset.vista)));
+  document.querySelectorAll("[data-ir]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); ir(el.dataset.ir); }));
+</script>
+</body>
+</html>

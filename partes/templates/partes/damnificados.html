@@ -1,0 +1,24 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}Damnificados — Parte {{ parte.numero_correlativo }}/{{ parte.anio }}{% endblock %}
+
+{% block contenido %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="card">
+    <h1>Damnificados — Rodado {{ rodado.rodado_numero }}</h1>
+    <div class="subtitulo">Parte {{ parte.numero_correlativo }}/{{ parte.anio }} · {{ rodado.marca }} {{ rodado.modelo }} {{ rodado.dominio }}</div>
+    <p class="ayuda" style="margin-bottom:0;">
+      Triage: <b>rojo</b> atención inmediata · <b>amarillo</b> urgente · <b>verde</b> leve · <b>negro</b> fallecido · <b>blanco</b> sin talón.
+    </p>
+    {% include "partes/_formset.html" with formset=formset nombre="damnificado" fila="partes/_fila_damnificado.html" %}
+  </div>
+
+  <div class="barra-guardar">
+    <button type="submit" class="btn">Guardar</button>
+    <button type="submit" name="seguir" class="btn secundario">Guardar y seguir</button>
+    <a class="btn gris" href="{% url 'detalle_parte' parte.pk %}">Cancelar</a>
+  </div>
+</form>
+{% include "partes/_listas_damnificado.html" %}
+{% endblock %}

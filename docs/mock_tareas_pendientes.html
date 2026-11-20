@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tareas pendientes (mock)</title>
+<style>
+  :root { --rojo:#c0392b; --rojo-suave:#fdecea; --fondo:#f3f4f6; --texto:#1f2937; --gris:#6b7280; --borde:#e5e7eb; --azul:#2563eb; --verde:#15803d; --ambar:#b45309; }
+  * { box-sizing:border-box; }
+  body { font-family:system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background:var(--fondo); color:var(--texto); margin:0; padding:1rem; line-height:1.45; }
+  h1 { color:var(--rojo); font-size:1.35rem; margin:0 0 .2rem 0; }
+  h2 { font-size:1.05rem; margin:0 0 .6rem 0; }
+  .contenedor { max-width:1100px; margin:0 auto; }
+  .card { background:#fff; padding:1rem 1.2rem; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.08); border:1px solid var(--borde); margin-bottom:1rem; }
+  .btn { display:inline-block; background:var(--rojo); color:#fff; border:0; padding:.5rem .9rem; border-radius:8px; font-weight:600; font-size:.9rem; cursor:pointer; text-decoration:none; font-family:inherit; }
+  .btn.gris { background:#e5e7eb; color:#111; } .btn.verde { background:var(--verde); } .btn.chico { padding:.3rem .6rem; font-size:.8rem; }
+  .acciones { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+  .ayuda { color:var(--gris); font-size:.85rem; }
+  .aviso-mock { max-width:1100px; margin:0 auto 1rem auto; background:#fef9c3; border:1px dashed #ca8a04; border-radius:8px; padding:.6rem .9rem; font-size:.85rem; }
+  .pestanas { display:flex; gap:.3rem; margin-top:.5rem; flex-wrap:wrap; }
+  .pestanas button { font:inherit; font-size:.85rem; padding:.35rem .8rem; border-radius:999px; border:1px solid #ca8a04; background:#fff; cursor:pointer; }
+  .pestanas button.activa { background:#ca8a04; color:#fff; }
+  .vista { display:none; } .vista.activa { display:block; }
+  label { display:block; font-size:.85rem; font-weight:600; margin:.6rem 0 .2rem 0; }
+  input, select, textarea { width:100%; font:inherit; padding:.45rem .55rem; border:1px solid #cbd5e1; border-radius:8px; background:#fff; }
+  .filtros { display:grid; grid-template-columns:repeat(5, 1fr) auto; gap:.5rem; align-items:end; }
+  .filtros label { margin-top:0; }
+
+  /* Resumen */
+  .resumen { display:grid; grid-template-columns:repeat(4, 1fr); gap:.6rem; margin-bottom:1rem; }
+  .dato { background:#fff; border:1px solid var(--borde); border-radius:10px; padding:.6rem .8rem; }
+  .dato b { display:block; font-size:1.5rem; line-height:1.1; } .dato span { font-size:.8rem; color:var(--gris); }
+  .dato.alerta b { color:var(--rojo); }
+
+  /* Tablero */
+  .tablero { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:.6rem; align-items:start; }
+  .columna { background:#e9ecf1; border-radius:10px; padding:.5rem; }
+  .columna h3 { font-size:.82rem; text-transform:uppercase; letter-spacing:.04em; margin:.1rem .2rem .5rem .2rem; color:#374151; display:flex; justify-content:space-between; }
+  .tarjeta { background:#fff; border-radius:8px; padding:.5rem .6rem; margin-bottom:.5rem; border-left:4px solid #cbd5e1; box-shadow:0 1px 2px rgba(0,0,0,.06); font-size:.85rem; cursor:pointer; }
+  .tarjeta:hover { box-shadow:0 2px 6px rgba(0,0,0,.12); }
+  .tarjeta .num { font-size:.72rem; color:var(--gris); }
+  .tarjeta .titulo { font-weight:700; margin:.1rem 0; }
+  .tarjeta .meta { font-size:.75rem; color:var(--gris); }
+  .tarjeta.p-critica { border-left-color:#7f1d1d; } .tarjeta.p-alta { border-left-color:var(--rojo); }
+  .tarjeta.p-media { border-left-color:#f59e0b; } .tarjeta.p-baja { border-left-color:#9ca3af; }
+  .pill { display:inline-block; font-size:.7rem; font-weight:700; padding:.05rem .45rem; border-radius:999px; background:#e5e7eb; color:#374151; }
+  .pill.critica { background:#7f1d1d; color:#fff; } .pill.alta { background:#fee2e2; color:#991b1b; }
+  .pill.media { background:#fef3c7; color:#92400e; } .pill.baja { background:#f3f4f6; color:#4b5563; }
+  .pill.operativa { background:#991b1b; color:#fff; }
+  .pill.vencida { background:#fff; color:#b91c1c; border:1px solid #b91c1c; }
+  .pill.espera { background:#e0e7ff; color:#3730a3; }
+  .pill.ok { background:#dcfce7; color:#14532d; }
+
+  /* Detalle */
+  .detalle { display:grid; grid-template-columns:2fr 1fr; gap:1rem; }
+  .datos-grilla { display:grid; grid-template-columns:auto 1fr; gap:.25rem .8rem; margin:0; font-size:.92rem; }
+  .datos-grilla dt { font-weight:700; color:#374151; } .datos-grilla dd { margin:0; }
+  .fotos { display:flex; gap:.5rem; margin-top:.4rem; }
+  .foto { width:96px; height:72px; border-radius:6px; background:repeating-linear-gradient(45deg,#e5e7eb,#e5e7eb 8px,#f3f4f6 8px,#f3f4f6 16px); display:flex; align-items:center; justify-content:center; font-size:.7rem; color:var(--gris); }
+  .historial { list-style:none; padding:0; margin:0; border-left:2px solid var(--borde); }
+  .historial li { position:relative; padding:0 0 .8rem .9rem; font-size:.86rem; }
+  .historial li::before { content:""; position:absolute; left:-6px; top:.35rem; width:10px; height:10px; border-radius:50%; background:#9ca3af; }
+  .historial li.estado::before { background:var(--azul); } .historial li.cierre::before { background:var(--verde); }
+  .historial .cuando { font-size:.75rem; color:var(--gris); }
+  .vinculos a { display:block; margin:.15rem 0; }
+
+  /* Celular */
+  .telefono { max-width:380px; margin:0 auto; border:1px solid var(--borde); border-radius:16px; padding:1rem; background:#fff; }
+  .opciones { display:grid; grid-template-columns:repeat(4, 1fr); gap:.3rem; }
+  .opciones label { margin:0; font-weight:600; font-size:.78rem; text-align:center; border:1px solid #cbd5e1; border-radius:8px; padding:.4rem .2rem; cursor:pointer; }
+  .opciones input { display:none; }
+  .opciones input:checked + span { color:var(--rojo); }
+  .sugerencia { background:var(--rojo-suave); border-radius:8px; padding:.5rem .6rem; font-size:.82rem; margin-top:.6rem; }
+
+  @media (max-width:900px) {
+    .tablero { grid-template-columns:1fr; } .detalle { grid-template-columns:1fr; }
+    .filtros { grid-template-columns:1fr 1fr; } .resumen { grid-template-columns:1fr 1fr; }
+  }
+  @media (max-width:520px) { body { padding:.5rem; } .filtros { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<div class="aviso-mock">
+  <b>Mock para corregir</b>: datos de ejemplo; los botones no hacen nada. Pantallas:
+  <div class="pestanas">
+    <button type="button" class="activa" data-vista="tablero">1. Tablero</button>
+    <button type="button" data-vista="detalle">2. Detalle de una tarea</button>
+    <button type="button" data-vista="reportar">3. Reportar desde el celular</button>
+    <button type="button" data-vista="mantenimiento">4. Al cargar un mantenimiento</button>
+  </div>
+</div>
+
+<div class="contenedor">
+
+<!-- ================= 1. TABLERO ================= -->
+<section class="vista activa" id="tablero">
+  <div class="card">
+    <div class="acciones" style="justify-content:space-between;">
+      <div><h1>Tareas pendientes de mantenimiento</h1><div class="ayuda">Lo que falta hacer en los móviles y en el cuartel. Al resolverse, se vincula con el mantenimiento que la arregló.</div></div>
+      <div class="acciones"><a class="btn" href="#">+ Reportar tarea</a><a class="btn gris" href="#">Mis tareas (2)</a><a class="btn gris" href="#">Imprimir</a></div>
+    </div>
+    <div class="filtros" style="margin-top:.8rem;">
+      <div><label>Móvil / elemento</label><select><option>Todos</option><option>Móvil 3</option><option>Móvil 7</option><option>Móvil 12</option><option>Cuartel / otros</option></select></div>
+      <div><label>Encargado</label><select><option>Todos</option><option>Sin asignar</option><option>Rodríguez, Pablo</option><option>Gómez, María Laura</option></select></div>
+      <div><label>Categoría</label><select><option>Todas</option><option>Mecánica</option><option>Eléctrica</option><option>Bomba / hidráulica</option><option>Equipos ERA</option><option>Edificio</option></select></div>
+      <div><label>Prioridad</label><select><option>Todas</option><option>Crítica</option><option>Alta</option><option>Media</option><option>Baja</option></select></div>
+      <div><label>Buscar</label><input placeholder="Título, descripción, N°"></div>
+      <div><button class="btn gris" type="button">Filtrar</button></div>
+    </div>
+  </div>
+
+  <div class="resumen">
+    <div class="dato"><b>5</b><span>abiertas</span></div>
+    <div class="dato alerta"><b>2</b><span>afectan la operatividad</span></div>
+    <div class="dato alerta"><b>1</b><span>vencida</span></div>
+    <div class="dato"><b>9 días</b><span>antigüedad mediana de las abiertas</span></div>
+  </div>
+
+  <div class="tablero">
+    <div class="columna">
+      <h3>Reportada <span>2</span></h3>
+      <div class="tarjeta p-critica" data-ir="detalle">
+        <div class="num">T-19/2026 · Equipos ERA · hace 1 día</div>
+        <div class="titulo">Manómetro del equipo ERA N° 4 no marca</div>
+        <span class="pill critica">Crítica</span> <span class="pill operativa">Afecta operatividad</span>
+        <div class="meta">Sin encargado · Reportó: Luna, E.</div>
+      </div>
+      <div class="tarjeta p-baja">
+        <div class="num">T-18/2026 · Móvil 3 · hace 3 días</div>
+        <div class="titulo">Cubierta trasera izquierda gastada</div>
+        <span class="pill baja">Baja</span>
+        <div class="meta">Sin encargado · Reportó: Gómez, M. L.</div>
+      </div>
+    </div>
+    <div class="columna">
+      <h3>Asignada <span>1</span></h3>
+      <div class="tarjeta p-media">
+        <div class="num">T-16/2026 · Móvil 7 · hace 9 días</div>
+        <div class="titulo">Baliza delantera no enciende</div>
+        <span class="pill media">Media</span> <span class="pill vencida">Vencida 12/11</span>
+        <div class="meta">Encargado: Gómez, M. L.</div>
+      </div>
+    </div>
+    <div class="columna">
+      <h3>En curso <span>1</span></h3>
+      <div class="tarjeta p-alta">
+        <div class="num">T-14/2026 · Cuartel · hace 12 días</div>
+        <div class="titulo">Portón del garage no cierra del todo</div>
+        <span class="pill alta">Alta</span>
+        <div class="meta">Encargados: Rodríguez, P. · Luna, E.</div>
+      </div>
+    </div>
+    <div class="columna">
+      <h3>En espera <span>1</span></h3>
+      <div class="tarjeta p-alta" data-ir="detalle">
+        <div class="num">T-15/2026 · Móvil 12 · hace 10 días</div>
+        <div class="titulo">Pierde aceite la bomba centrífuga</div>
+        <span class="pill alta">Alta</span> <span class="pill operativa">Afecta operatividad</span><br>
+        <span class="pill espera">Espera repuesto · OC 17/2026</span>
+        <div class="meta">Encargado: Rodríguez, P.</div>
+      </div>
+    </div>
+    <div class="columna">
+      <h3>Resuelta <span>12 este año</span></h3>
+      <div class="tarjeta p-media">
+        <div class="num">T-13/2026 · Móvil 12 · resuelta 08/11</div>
+        <div class="titulo">Cambiar escobillas limpiaparabrisas</div>
+        <span class="pill ok">Mant. 31/2026</span>
+        <div class="meta">Resolvió: Rodríguez, P. · 4 días</div>
+      </div>
+      <a href="#" class="ayuda">Ver todas las resueltas →</a>
+    </div>
+  </div>
+  <p class="ayuda">Tocá una tarjeta para ver el detalle (en el mock: la T-15 o la T-19).</p>
+</section>
+
+<!-- ================= 2. DETALLE ================= -->
+<section class="vista" id="detalle">
+  <div class="card">
+    <div class="acciones" style="justify-content:space-between;">
+      <div>
+        <div class="ayuda">T-15/2026 · Reportada el 04/11/2026</div>
+        <h1>Pierde aceite la bomba centrífuga</h1>
+        <span class="pill alta">Alta</span> <span class="pill operativa">Afecta operatividad</span> <span class="pill espera">En espera: repuesto</span>
+      </div>
+      <a class="btn gris" href="#" data-ir="tablero">Volver al tablero</a>
+    </div>
+  </div>
+
+  <div class="detalle">
+    <div>
+      <div class="card">
+        <h2>Datos</h2>
+        <dl class="datos-grilla">
+          <dt>Qué:</dt><dd><a href="#">Móvil 12 — Ford F-4000</a> (km 84.310)</dd>
+          <dt>Categoría:</dt><dd>Bomba / hidráulica</dd>
+          <dt>Reportó:</dt><dd>Gómez, María Laura (1188) · 04/11/2026 22:40</dd>
+          <dt>Encargados:</dt><dd><b>Rodríguez, Pablo (1102)</b>, <b>Gómez, María Laura (1188)</b> · asignó Pérez, J. C. (Graduado) el 05/11</dd>
+          <dt>Fecha límite:</dt><dd>20/11/2026 (faltan 6 días)</dd>
+          <dt>Origen:</dt><dd><a href="#">Parte 85/2026</a> (salida a incendio)</dd>
+          <dt>Descripción:</dt><dd>Al volver del incendio se vio una mancha de aceite debajo de la bomba. Gotea por el sello del eje con la bomba en marcha. Se puede usar, pero hay que controlar el nivel antes de cada salida.</dd>
+        </dl>
+        <div class="fotos"><div class="foto">foto 1</div><div class="foto">foto 2</div></div>
+      </div>
+
+      <div class="card">
+        <h2>Historial</h2>
+        <ul class="historial">
+          <li><b>Gómez, M. L.</b> reportó la tarea. <div class="cuando">04/11/2026 22:40</div></li>
+          <li class="estado"><b>Pérez, J. C.</b> asignó a <b>Rodríguez, P.</b> y <b>Gómez, M. L.</b> · fecha límite 20/11. <div class="cuando">05/11/2026 08:10 · Reportada → Asignada</div></li>
+          <li class="estado"><b>Rodríguez, P.</b> la pasó a En curso: «Desarmo mañana para ver el sello.» <div class="cuando">06/11/2026 19:30 · Asignada → En curso</div></li>
+          <li class="estado"><b>Rodríguez, P.</b> la pasó a En espera (repuesto): «Hay que cambiar el sello mecánico. Pedido en la OC 17/2026.» <div class="cuando">08/11/2026 20:05 · En curso → En espera</div></li>
+          <li><b>Pérez, J. C.</b> comentó: «El comercio dice que llega el martes.» <div class="cuando">14/11/2026 09:15</div></li>
+        </ul>
+        <label>Agregar comentario</label>
+        <textarea rows="2" placeholder="Novedades de la tarea…"></textarea>
+        <div class="acciones" style="margin-top:.5rem;"><button class="btn gris chico" type="button">Comentar</button><button class="btn gris chico" type="button">+ Foto</button></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Acciones</h2>
+        <div class="acciones" style="flex-direction:column;align-items:stretch;">
+          <button class="btn" type="button">Retomar (En curso)</button>
+          <button class="btn verde" type="button">Marcar resuelta</button>
+          <button class="btn gris" type="button">Encargados / prioridad</button>
+          <button class="btn gris" type="button">Descartar</button>
+        </div>
+        <p class="ayuda" style="margin-bottom:0;">Resolver: cualquiera de los encargados (o Jefe / Graduado). Al resolver se elige el mantenimiento que la resolvió, o se anota qué se hizo si fue algo menor. Asignar encargados, cambiar prioridad y descartar: Jefe o Graduado. Estadística solo ve.</p>
+      </div>
+      <div class="card vinculos">
+        <h2>Vinculado con</h2>
+        <a href="#">Parte 85/2026 — origen</a>
+        <a href="#">Orden de compra 17/2026 — Gestionada</a>
+        <span class="ayuda">Mantenimiento: todavía ninguno</span>
+      </div>
+      <div class="card">
+        <h2>Otras tareas del Móvil 12</h2>
+        <div class="ayuda">T-13/2026 Escobillas — resuelta 08/11<br>T-09/2026 Ruido en el diferencial — resuelta 21/09</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 3. REPORTAR (CELULAR) ================= -->
+<section class="vista" id="reportar">
+  <div class="telefono">
+    <h1>Reportar tarea</h1>
+    <div class="ayuda">Reporta: Luna, Esteban (1203) · 14/11/2026 21:50</div>
+
+    <label>¿Qué hay que mantener?</label>
+    <select><option>Móvil 12 — Ford F-4000</option><option>Móvil 7</option><option>Móvil 3</option><option>— Otra cosa del cuartel —</option></select>
+
+    <label>Título corto</label>
+    <input value="Manómetro del equipo ERA N° 4 no marca">
+
+    <label>Categoría</label>
+    <select><option>Equipos ERA</option><option>Mecánica</option><option>Eléctrica</option><option>Carrocería</option><option>Bomba / hidráulica</option><option>Comunicaciones</option><option>Edificio</option><option>Herramientas</option><option>Otra</option></select>
+
+    <label>Prioridad</label>
+    <div class="opciones">
+      <label><input type="radio" name="p"><span>Baja</span></label>
+      <label><input type="radio" name="p"><span>Media</span></label>
+      <label><input type="radio" name="p"><span>Alta</span></label>
+      <label><input type="radio" name="p" checked><span>Crítica</span></label>
+    </div>
+
+    <label style="font-weight:400;"><input type="checkbox" checked style="width:auto;"> <b>Afecta la operatividad</b> (no se puede usar o es riesgoso)</label>
+
+    <label>Descripción</label>
+    <textarea rows="3">Al hacer el control de guardia el manómetro queda en cero con el cilindro cargado. Equipo separado y rotulado.</textarea>
+
+    <label>Fotos</label>
+    <button class="btn gris" type="button" style="width:100%;">📷 Sacar o elegir foto</button>
+
+    <label>Viene de (opcional)</label>
+    <select><option>— Nada —</option><option>Parte 86/2026</option><option>Libro de guardia (folio 412)</option></select>
+
+    <div class="sugerencia">⚠ El Móvil 12 ya tiene 1 tarea abierta: <b>T-15 Pierde aceite la bomba</b>. ¿Es la misma? Entonces comentala ahí en lugar de crear otra.</div>
+
+    <button class="btn" type="button" style="width:100%;margin-top:.8rem;">Reportar</button>
+    <p class="ayuda" style="text-align:center;">El encargado lo asigna el Jefe o un Graduado.</p>
+  </div>
+</section>
+
+<!-- ================= 4. AL CARGAR UN MANTENIMIENTO ================= -->
+<section class="vista" id="mantenimiento">
+  <div class="card" style="max-width:720px;margin:0 auto;">
+    <div class="ayuda">Nuevo mantenimiento · (formulario actual, arriba)</div>
+    <h1>Mantenimiento — Móvil 12</h1>
+    <div class="ayuda" style="margin-bottom:.6rem;">… fecha, horas, tipo, participantes, descripción (sin cambios) …</div>
+    <div style="border:2px solid var(--azul);border-radius:10px;padding:.7rem .9rem;background:#eff6ff;">
+      <b>¿Este mantenimiento resuelve alguna tarea pendiente del Móvil 12?</b>
+      <label style="font-weight:400;"><input type="checkbox" checked style="width:auto;"> T-15/2026 · Pierde aceite la bomba centrífuga <span class="pill alta">Alta</span></label>
+      <label style="font-weight:400;"><input type="checkbox" style="width:auto;"> T-20/2026 · Revisar presión de cubiertas <span class="pill baja">Baja</span></label>
+      <p class="ayuda" style="margin:.4rem 0 0 0;">Las tildadas pasan directamente a Resuelta, vinculadas a este mantenimiento, sin importar quién lo cargue. En el historial de la tarea queda quién lo cargó.</p>
+    </div>
+    <div class="acciones" style="margin-top:.8rem;"><button class="btn" type="button">Guardar mantenimiento</button></div>
+  </div>
+</section>
+
+</div>
+
+<script>
+  function ir(vista) {
+    document.querySelectorAll(".vista").forEach(v => v.classList.toggle("activa", v.id === vista));
+    document.querySelectorAll(".pestanas button").forEach(b => b.classList.toggle("activa", b.dataset.vista === vista));
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll(".pestanas button").forEach(b => b.addEventListener("click", () => ir(b.dataset.vista)));
+  document.querySelectorAll("[data-ir]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); ir(el.dataset.ir); }));
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}Calles — Bomberos Villa María{% endblock %}
+
+{% block contenido %}
+<div class="card" style="max-width:720px;">
+  <h1>Calles</h1>
+  <p class="ayuda">El listado para cargar partes trae {{ cantidad_listado }} calles del mapa y del servicio del gobierno.
+    Si falta alguna, agregala acá: aparece enseguida al cargar un parte.</p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="campos">{% include "partes/_campo.html" with campo=form.nombre %}</div>
+    <div class="acciones"><button type="submit" class="btn">Agregar calle</button></div>
+  </form>
+</div>
+
+<div class="card" style="max-width:720px;">
+  <h2>Agregadas a mano ({{ calles|length }})</h2>
+  {% if calles %}
+  <table>
+    {% for c in calles %}
+    <tr>
+      <td>{{ c.nombre }}</td>
+      <td style="text-align:right;">
+        {% if perms.partes.delete_calle %}
+        <form method="post" action="{% url 'quitar_calle' c.pk %}" style="margin:0;">{% csrf_token %}
+          <button type="submit" class="btn gris chico">Quitar</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="vacio">Todavía no se agregó ninguna.</p>{% endif %}
+</div>
+{% endblock %}

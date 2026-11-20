@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+db.sqlite3
+.env
+media/
+staticfiles/
+cloudflared.exe
+cloudflared.log
+# Listados del cuartel con datos personales: no van al repo
+*.xlsx
+# Propios de cada PC del cuartel (instalar.ps1 / actualizar.ps1)
+configuracion_local.ps1
+respaldos/

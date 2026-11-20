@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estadísticas (mock)</title>
+<style>
+  :root {
+    --rojo:#c0392b; --rojo-suave:#fdecea; --fondo:#f3f4f6; --texto:#1f2937; --gris:#6b7280; --borde:#e5e7eb; --azul:#2563eb; --verde:#15803d;
+    /* Paleta de gráficos (categórica en orden fijo + secuencial azul) */
+    --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --grilla:#e5e7eb; --eje:#9ca3af;
+    --q1:#cde2fb; --q2:#9ec5f4; --q3:#6da7ec; --q4:#3987e5; --q5:#256abf; --q6:#184f95;
+  }
+  * { box-sizing:border-box; }
+  body { font-family:system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background:var(--fondo); color:var(--texto); margin:0; padding:1rem; line-height:1.45; }
+  h1 { color:var(--rojo); font-size:1.35rem; margin:0 0 .2rem 0; }
+  h2 { font-size:1.02rem; margin:0 0 .15rem 0; }
+  .sub { color:var(--gris); font-size:.82rem; margin:0 0 .6rem 0; }
+  .contenedor { max-width:1150px; margin:0 auto; }
+  .card { background:#fff; padding:1rem 1.2rem; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.08); border:1px solid var(--borde); margin-bottom:1rem; }
+  .btn { display:inline-block; background:var(--rojo); color:#fff; border:0; padding:.5rem .9rem; border-radius:8px; font-weight:600; font-size:.9rem; cursor:pointer; text-decoration:none; font-family:inherit; }
+  .btn.gris { background:#e5e7eb; color:#111; }
+  .acciones { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+  .ayuda { color:var(--gris); font-size:.85rem; }
+  .aviso-mock { max-width:1150px; margin:0 auto 1rem auto; background:#fef9c3; border:1px dashed #ca8a04; border-radius:8px; padding:.6rem .9rem; font-size:.85rem; }
+  .pestanas { display:flex; gap:.3rem; margin-top:.5rem; flex-wrap:wrap; }
+  .pestanas button { font:inherit; font-size:.85rem; padding:.35rem .8rem; border-radius:999px; border:1px solid #ca8a04; background:#fff; cursor:pointer; }
+  .pestanas button.activa { background:#ca8a04; color:#fff; }
+  .vista { display:none; } .vista.activa { display:block; }
+  label { display:block; font-size:.8rem; font-weight:600; margin:0 0 .2rem 0; }
+  input, select { width:100%; font:inherit; font-size:.9rem; padding:.4rem .5rem; border:1px solid #cbd5e1; border-radius:8px; background:#fff; }
+  .filtros { display:grid; grid-template-columns:repeat(5, 1fr) auto; gap:.5rem; align-items:end; }
+
+  /* Sub-pestañas del tablero */
+  .tabs { display:flex; gap:.2rem; border-bottom:2px solid var(--borde); margin:.9rem 0 1rem 0; flex-wrap:wrap; }
+  .tabs a { padding:.45rem .85rem; text-decoration:none; color:#374151; font-weight:600; font-size:.9rem; border-bottom:3px solid transparent; margin-bottom:-2px; }
+  .tabs a.activa { color:var(--rojo); border-bottom-color:var(--rojo); }
+
+  /* Indicadores */
+  .kpis { display:grid; grid-template-columns:repeat(6, 1fr); gap:.6rem; margin-bottom:1rem; }
+  .kpi { background:#fff; border:1px solid var(--borde); border-radius:10px; padding:.65rem .8rem; }
+  .kpi .v { font-size:1.55rem; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums; }
+  .kpi .l { font-size:.8rem; color:#374151; }
+  .kpi .c { font-size:.75rem; color:var(--gris); margin-top:.2rem; }
+  .sube::before { content:"▲ "; } .baja::before { content:"▼ "; }
+
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; }
+  .grafico svg { width:100%; height:auto; display:block; }
+  svg text { font-family:inherit; }
+  .leyenda { display:flex; gap:1rem; flex-wrap:wrap; font-size:.8rem; color:#374151; margin-top:.3rem; }
+  .muestra { display:inline-block; width:.75rem; height:.75rem; border-radius:3px; vertical-align:middle; margin-right:.3rem; }
+  .pocos { display:inline-block; font-size:.7rem; font-weight:700; padding:.05rem .4rem; border-radius:999px; background:#fef3c7; color:#78350f; }
+  .nota { background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:.5rem .75rem; font-size:.82rem; margin-top:.6rem; }
+  .candado { background:#f5f3ff; border:1px solid #ddd6fe; border-radius:8px; padding:.5rem .75rem; font-size:.82rem; }
+
+  /* Barras horizontales (HTML) */
+  .hbar { display:grid; grid-template-columns:9.5rem 1fr 3.4rem; gap:.35rem .6rem; align-items:center; font-size:.85rem; }
+  .hbar .pista { height:14px; background:#f3f4f6; border-radius:0 4px 4px 0; }
+  .hbar .pista i { display:block; height:100%; background:var(--s1); border-radius:0 4px 4px 0; }
+  .hbar .n { text-align:right; font-variant-numeric:tabular-nums; }
+
+  /* Tiempos: mediana + P90 */
+  .tiempo { display:grid; grid-template-columns:8.5rem 1fr 6.5rem; gap:.4rem .6rem; align-items:center; font-size:.85rem; }
+  .tiempo .pista { position:relative; height:16px; background:#f3f4f6; border-radius:4px; }
+  .tiempo .med { position:absolute; left:0; top:0; height:100%; background:var(--s1); border-radius:0 4px 4px 0; }
+  .tiempo .p90 { position:absolute; top:-3px; width:2px; height:22px; background:#1f2937; }
+  .tiempo .n { text-align:right; font-variant-numeric:tabular-nums; font-size:.8rem; }
+
+  /* Mapa de calor */
+  .calor { display:grid; grid-template-columns:2.6rem repeat(6, 1fr); gap:2px; font-size:.75rem; }
+  .calor div { padding:.4rem 0; text-align:center; border-radius:3px; font-variant-numeric:tabular-nums; }
+  .calor .cab { color:var(--gris); background:none; }
+  .calor .c1 { background:var(--q1); } .calor .c2 { background:var(--q2); } .calor .c3 { background:var(--q3); }
+  .calor .c4 { background:var(--q4); color:#fff; } .calor .c5 { background:var(--q5); color:#fff; } .calor .c6 { background:var(--q6); color:#fff; }
+  .escala { display:flex; gap:2px; align-items:center; font-size:.72rem; color:var(--gris); margin-top:.4rem; }
+  .escala span.q { width:1.6rem; height:.7rem; border-radius:2px; }
+
+  /* Tablas */
+  .tabla-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.85rem; }
+  th, td { padding:.42rem .5rem; border-bottom:1px solid var(--borde); text-align:left; vertical-align:top; }
+  th { font-size:.72rem; text-transform:uppercase; letter-spacing:.03em; color:#4b5563; background:#f9fafb; white-space:nowrap; }
+  th.ord { cursor:pointer; } th.ord::after { content:" ⇅"; color:#9ca3af; }
+  .num { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  td.alto { background:#ecfdf5; } td.alto::after { content:" ▲"; font-size:.65rem; color:#047857; }
+  td.bajo { background:#fff7ed; } td.bajo::after { content:" ▼"; font-size:.65rem; color:#c2410c; }
+  tr.mediana td { background:#f9fafb; font-weight:700; border-top:2px solid var(--borde); }
+  a.persona { font-weight:700; color:var(--azul); text-decoration:none; }
+  .pill { display:inline-block; font-size:.7rem; font-weight:700; padding:.05rem .45rem; border-radius:999px; background:#e5e7eb; color:#374151; white-space:nowrap; }
+  .pill.alerta { background:#fee2e2; color:#991b1b; }
+
+  /* Ficha: comparación con la mediana */
+  .comp { display:grid; grid-template-columns:repeat(4, 1fr); gap:.6rem; }
+  .comp .kpi .barra { position:relative; height:8px; background:#f3f4f6; border-radius:4px; margin-top:.45rem; }
+  .comp .kpi .barra i { position:absolute; left:0; top:0; height:100%; background:var(--s1); border-radius:4px; }
+  .comp .kpi .barra b { position:absolute; top:-3px; width:2px; height:14px; background:#1f2937; }
+
+  @media (max-width:1000px) { .kpis { grid-template-columns:repeat(3, 1fr); } .comp { grid-template-columns:1fr 1fr; } .filtros { grid-template-columns:repeat(3, 1fr); } }
+  @media (max-width:760px) { .grid2, .grid3 { grid-template-columns:1fr; } .kpis { grid-template-columns:1fr 1fr; } .filtros { grid-template-columns:1fr 1fr; } }
+  @media (max-width:520px) { body { padding:.5rem; } .hbar { grid-template-columns:6.5rem 1fr 3rem; } .tiempo { grid-template-columns:6rem 1fr 5.5rem; } }
+</style>
+</head>
+<body>
+
+<div class="aviso-mock">
+  <b>Mock para corregir</b>: datos inventados del año 2026 (al 14/11), coherentes entre pantallas. Los gráficos muestran el valor al pasar el mouse. Pantallas:
+  <div class="pestanas">
+    <button type="button" class="activa" data-vista="tablero">1. Tablero institucional</button>
+    <button type="button" data-vista="personal">2. Tabla de personal</button>
+    <button type="button" data-vista="ficha">3. Ficha estadística del bombero</button>
+  </div>
+</div>
+
+<div class="contenedor">
+
+<!-- ======================================================= 1. TABLERO -->
+<section class="vista activa" id="tablero">
+  <div class="card">
+    <div class="acciones" style="justify-content:space-between;">
+      <div><h1>Estadísticas</h1><div class="ayuda">Actividad del cuerpo. Lo ven Jefe, Estadística y Graduados.</div></div>
+      <div class="acciones"><a class="btn gris" href="#">Exportar a Excel</a><a class="btn gris" href="#">Imprimir (memoria anual)</a></div>
+    </div>
+    <div class="filtros" style="margin-top:.8rem;">
+      <div><label>Año</label><select><option>2026 (al 14/11)</option><option>2025</option></select></div>
+      <div><label>Desde</label><input type="date" value="2026-01-01"></div>
+      <div><label>Hasta</label><input type="date" value="2026-11-14"></div>
+      <div><label>Tipo de siniestro</label><select><option>Todos</option><option>01 · Incendio</option><option>02 · Accidentes</option></select></div>
+      <div><label>Grupo de guardia</label><select><option>Todos</option><option>Grupo 1</option><option>Grupo 2</option><option>Grupo 3</option></select></div>
+      <div><button class="btn gris" type="button">Aplicar</button></div>
+    </div>
+    <nav class="tabs" id="subtabs">
+      <a href="#" class="activa" data-sub="resumen">Resumen</a>
+      <a href="#" data-sub="intervenciones">Intervenciones</a>
+      <a href="#" data-sub="capacitacion">Capacitación</a>
+      <a href="#" data-sub="moviles">Mantenimiento y móviles</a>
+      <a href="#" data-sub="gestion">Gestión</a>
+    </nav>
+    <p class="ayuda" style="margin:0;">Las variaciones comparan con el <b>mismo período de 2025</b> (01/01 al 14/11), no con el año completo.</p>
+  </div>
+
+  <!-- ---------- Resumen ---------- -->
+  <div class="sub-vista" id="sub-resumen">
+    <div class="kpis">
+      <div class="kpi"><div class="v">354</div><div class="l">partes</div><div class="c sube">9,6% vs 2025 (323)</div></div>
+      <div class="kpi"><div class="v">4.910</div><div class="l">horas-hombre</div><div class="c">3.120 interv. · 1.480 capac. · 310 mant.</div></div>
+      <div class="kpi"><div class="v">10 min</div><div class="l">respuesta (mediana)</div><div class="c baja">1 min vs 2025 · P90: 19 min</div></div>
+      <div class="kpi"><div class="v">108</div><div class="l">bomberos con actividad</div><div class="c">de 122 en actividad (89%)</div></div>
+      <div class="kpi"><div class="v">214 h</div><div class="l">de capacitación dictadas</div><div class="c">46 capacitaciones</div></div>
+      <div class="kpi"><div class="v">$ 3,42 M</div><div class="l">costo de mantenimiento</div><div class="c">63 mantenimientos</div></div>
+    </div>
+
+    <div class="card grafico">
+      <h2>Partes por mes</h2>
+      <p class="sub">2026 frente a 2025. Noviembre está incompleto (al 14/11).</p>
+      <svg viewBox="0 0 720 230" role="img" aria-label="Partes por mes, 2026 y 2025">
+        <g stroke="var(--grilla)"><line x1="40" y1="190" x2="710" y2="190"/><line x1="40" y1="140" x2="710" y2="140"/><line x1="40" y1="90" x2="710" y2="90"/><line x1="40" y1="40" x2="710" y2="40"/></g>
+        <g font-size="11" fill="var(--gris)" text-anchor="end"><text x="34" y="194">0</text><text x="34" y="144">15</text><text x="34" y="94">30</text><text x="34" y="44">45</text></g>
+        <!-- 2025 (línea) y 2026 (barras). escala: 1 parte = 3,33 px; base y=190 -->
+        <g fill="var(--s1)">
+          <rect x="52"  y="63.5" width="40" height="126.5" rx="4"><title>Enero 2026: 38 partes</title></rect>
+          <rect x="112" y="53.5" width="40" height="136.5" rx="4"><title>Febrero 2026: 41 partes</title></rect>
+          <rect x="172" y="80"   width="40" height="110"   rx="4"><title>Marzo 2026: 33 partes</title></rect>
+          <rect x="232" y="93.4" width="40" height="96.6"  rx="4"><title>Abril 2026: 29 partes</title></rect>
+          <rect x="292" y="86.8" width="40" height="103.2" rx="4"><title>Mayo 2026: 31 partes</title></rect>
+          <rect x="352" y="100.1" width="40" height="89.9" rx="4"><title>Junio 2026: 27 partes</title></rect>
+          <rect x="412" y="90.1" width="40" height="99.9"  rx="4"><title>Julio 2026: 30 partes</title></rect>
+          <rect x="472" y="73.5" width="40" height="116.5" rx="4"><title>Agosto 2026: 35 partes</title></rect>
+          <rect x="532" y="70.1" width="40" height="119.9" rx="4"><title>Septiembre 2026: 36 partes</title></rect>
+          <rect x="592" y="56.8" width="40" height="133.2" rx="4"><title>Octubre 2026: 40 partes</title></rect>
+          <rect x="652" y="143.4" width="40" height="46.6" rx="4" fill="#9ec5f4"><title>Noviembre 2026 (al 14/11): 14 partes</title></rect>
+        </g>
+        <polyline fill="none" stroke="var(--s2)" stroke-width="2" points="72,83.4 132,70.1 192,90.1 252,96.8 312,90.1 372,103.4 432,93.4 492,86.8 552,80.1 612,73.5 672,76.8"/>
+        <g fill="var(--s2)" stroke="#fff" stroke-width="2">
+          <circle cx="72" cy="83.4" r="4.5"><title>Enero 2025: 32</title></circle><circle cx="132" cy="70.1" r="4.5"><title>Febrero 2025: 36</title></circle>
+          <circle cx="192" cy="90.1" r="4.5"><title>Marzo 2025: 30</title></circle><circle cx="252" cy="96.8" r="4.5"><title>Abril 2025: 28</title></circle>
+          <circle cx="312" cy="90.1" r="4.5"><title>Mayo 2025: 30</title></circle><circle cx="372" cy="103.4" r="4.5"><title>Junio 2025: 26</title></circle>
+          <circle cx="432" cy="93.4" r="4.5"><title>Julio 2025: 29</title></circle><circle cx="492" cy="86.8" r="4.5"><title>Agosto 2025: 31</title></circle>
+          <circle cx="552" cy="80.1" r="4.5"><title>Septiembre 2025: 33</title></circle><circle cx="612" cy="73.5" r="4.5"><title>Octubre 2025: 35</title></circle>
+          <circle cx="672" cy="76.8" r="4.5"><title>Noviembre 2025 (mes completo): 34</title></circle>
+        </g>
+        <text x="612" y="50" font-size="11" fill="var(--texto)" text-anchor="middle" font-weight="700">40</text>
+        <g font-size="11" fill="var(--gris)" text-anchor="middle">
+          <text x="72" y="208">Ene</text><text x="132" y="208">Feb</text><text x="192" y="208">Mar</text><text x="252" y="208">Abr</text><text x="312" y="208">May</text><text x="372" y="208">Jun</text>
+          <text x="432" y="208">Jul</text><text x="492" y="208">Ago</text><text x="552" y="208">Sep</text><text x="612" y="208">Oct</text><text x="672" y="208">Nov*</text>
+        </g>
+      </svg>
+      <div class="leyenda"><span><span class="muestra" style="background:var(--s1)"></span>2026</span><span><span class="muestra" style="background:var(--s2);border-radius:50%"></span>2025</span><span class="ayuda">* Noviembre 2026 al 14/11; noviembre 2025 completo.</span></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h2>Partes por tipo</h2>
+        <p class="sub">354 partes · % del total</p>
+        <div class="hbar">
+          <span>02 · Accidentes</span><div class="pista"><i style="width:100%"></i></div><span class="n">138 · 39%</span>
+          <span>01 · Incendio</span><div class="pista"><i style="width:81%"></i></div><span class="n">112 · 32%</span>
+          <span>05 · Mant. / tareas</span><div class="pista"><i style="width:30%"></i></div><span class="n">41 · 12%</span>
+          <span>04 · Rescate</span><div class="pista"><i style="width:25%"></i></div><span class="n">34 · 10%</span>
+          <span>03 · Salvataje</span><div class="pista"><i style="width:15%"></i></div><span class="n">21 · 6%</span>
+          <span>06 · Org. funcional</span><div class="pista"><i style="width:6%"></i></div><span class="n">8 · 2%</span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Para mirar</h2>
+        <p class="sub">Lo que el sistema detecta solo.</p>
+        <div class="nota" style="margin-top:0;">▲ Los accidentes subieron 18% (117 → 138): la mayoría viernes y sábados de 20 a 24 h.</div>
+        <div class="nota">⚠ 14 bomberos en actividad no tuvieron ninguna actividad en los últimos 2 meses. <a href="#" data-ir="personal">Ver cuáles</a></div>
+        <div class="nota">ℹ 29% de los partes no tiene coordenadas: el mapa y los barrios están incompletos.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- Intervenciones ---------- -->
+  <div class="sub-vista" id="sub-intervenciones" hidden>
+    <div class="grid2">
+      <div class="card">
+        <h2>Tiempos operativos</h2>
+        <p class="sub">Barra = mediana · marca negra = P90 (9 de cada 10 salidas, en menos de ese tiempo). 341 salidas con horarios completos.</p>
+        <div class="tiempo">
+          <span>Despacho<br><span class="ayuda">llamada → salida</span></span><div class="pista"><span class="med" style="width:10%"></span><span class="p90" style="left:20%"></span></div><span class="n">3 · P90 6 min</span>
+          <span>Desplazamiento<br><span class="ayuda">salida → llegada</span></span><div class="pista"><span class="med" style="width:23%"></span><span class="p90" style="left:47%"></span></div><span class="n">7 · P90 14 min</span>
+          <span>Respuesta<br><span class="ayuda">llamada → llegada</span></span><div class="pista"><span class="med" style="width:33%"></span><span class="p90" style="left:63%"></span></div><span class="n">10 · P90 19 min</span>
+        </div>
+        <p class="ayuda" style="margin:.5rem 0 0 0;">Escala 0–30 min. Servicio (salida → regreso): mediana 58 min · P90 2 h 22 min.</p>
+        <h2 style="margin-top:.9rem;">Respuesta por tipo</h2>
+        <div class="tiempo">
+          <span>Accidentes</span><div class="pista"><span class="med" style="width:30%"></span><span class="p90" style="left:53%"></span></div><span class="n">9 · P90 16</span>
+          <span>Incendio</span><div class="pista"><span class="med" style="width:37%"></span><span class="p90" style="left:70%"></span></div><span class="n">11 · P90 21</span>
+          <span>Rescate</span><div class="pista"><span class="med" style="width:40%"></span><span class="p90" style="left:73%"></span></div><span class="n">12 · P90 22</span>
+          <span>Salvataje <span class="pocos">21 casos</span></span><div class="pista"><span class="med" style="width:43%"></span><span class="p90" style="left:80%"></span></div><span class="n">13 · P90 24</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>¿Cuándo hay más partes?</h2>
+        <p class="sub">Día de la semana × franja horaria · cantidad de partes</p>
+        <div class="calor">
+          <div class="cab"></div><div class="cab">0–4</div><div class="cab">4–8</div><div class="cab">8–12</div><div class="cab">12–16</div><div class="cab">16–20</div><div class="cab">20–24</div>
+          <div class="cab">Lun</div><div class="c2" title="Lunes 0–4 h: 4">4</div><div class="c1" title="Lunes 4–8 h: 3">3</div><div class="c4" title="Lunes 8–12 h: 10">10</div><div class="c5" title="Lunes 12–16 h: 12">12</div><div class="c6" title="Lunes 16–20 h: 13">13</div><div class="c4" title="Lunes 20–24 h: 9">9</div>
+          <div class="cab">Mar</div><div class="c1" title="Martes 0–4 h: 3">3</div><div class="c1" title="2">2</div><div class="c4" title="9">9</div><div class="c5" title="11">11</div><div class="c5" title="12">12</div><div class="c3" title="8">8</div>
+          <div class="cab">Mié</div><div class="c2" title="4">4</div><div class="c1" title="2">2</div><div class="c4" title="10">10</div><div class="c4" title="10">10</div><div class="c6" title="13">13</div><div class="c4" title="9">9</div>
+          <div class="cab">Jue</div><div class="c1" title="3">3</div><div class="c1" title="3">3</div><div class="c4" title="9">9</div><div class="c5" title="12">12</div><div class="c5" title="12">12</div><div class="c4" title="10">10</div>
+          <div class="cab">Vie</div><div class="c2" title="5">5</div><div class="c1" title="3">3</div><div class="c3" title="8">8</div><div class="c5" title="11">11</div><div class="c6" title="14">14</div><div class="c5" title="12">12</div>
+          <div class="cab">Sáb</div><div class="c3" title="7">7</div><div class="c2" title="4">4</div><div class="c3" title="7">7</div><div class="c4" title="9">9</div><div class="c5" title="12">12</div><div class="c6" title="13">13</div>
+          <div class="cab">Dom</div><div class="c4" title="9">9</div><div class="c2" title="5">5</div><div class="c3" title="6">6</div><div class="c3" title="8">8</div><div class="c6" title="13">13</div><div class="c6" title="15">15</div>
+        </div>
+        <div class="escala">menos <span class="q" style="background:var(--q1)"></span><span class="q" style="background:var(--q2)"></span><span class="q" style="background:var(--q3)"></span><span class="q" style="background:var(--q4)"></span><span class="q" style="background:var(--q5)"></span><span class="q" style="background:var(--q6)"></span> más</div>
+      </div>
+    </div>
+
+    <div class="grid3">
+      <div class="card">
+        <h2>Dotación por salida</h2>
+        <p class="sub">Mediana de integrantes por salida</p>
+        <div class="kpi" style="border:0;padding:0;"><div class="v">6</div><div class="c">P10: 3 · P90: 11</div></div>
+        <div class="hbar" style="margin-top:.6rem;grid-template-columns:6.5rem 1fr 3rem;">
+          <span>En el cuartel</span><div class="pista"><i style="width:64%"></i></div><span class="n">64%</span>
+          <span>Convocados</span><div class="pista"><i style="width:36%;background:var(--s2)"></i></div><span class="n">36%</span>
+        </div>
+        <p class="ayuda" style="margin-bottom:0;">23 salidas (7%) con menos de 4 integrantes.</p>
+      </div>
+      <div class="card">
+        <h2>Damnificados por triage</h2>
+        <p class="sub">187 damnificados · 72 trasladados · 9 negativas</p>
+        <div class="hbar" style="grid-template-columns:6.5rem 1fr 3rem;">
+          <span>Verde</span><div class="pista"><i style="width:100%"></i></div><span class="n">88</span>
+          <span>Sin lesiones</span><div class="pista"><i style="width:64%"></i></div><span class="n">56</span>
+          <span>Amarillo</span><div class="pista"><i style="width:35%"></i></div><span class="n">31</span>
+          <span>Rojo</span><div class="pista"><i style="width:10%"></i></div><span class="n">9</span>
+          <span>Negro</span><div class="pista"><i style="width:3%"></i></div><span class="n">3</span>
+        </div>
+        <p class="ayuda" style="margin-bottom:0;">Un solo color: es la cantidad la que importa, no el color del triage.</p>
+      </div>
+      <div class="card">
+        <h2>Barrios con más partes</h2>
+        <p class="sub">251 partes con barrio (71%)</p>
+        <div class="hbar" style="grid-template-columns:6.5rem 1fr 3rem;">
+          <span>Centro</span><div class="pista"><i style="width:100%"></i></div><span class="n">41</span>
+          <span>Ameghino</span><div class="pista"><i style="width:56%"></i></div><span class="n">23</span>
+          <span>Las Playas</span><div class="pista"><i style="width:46%"></i></div><span class="n">19</span>
+          <span>San Martín</span><div class="pista"><i style="width:39%"></i></div><span class="n">16</span>
+          <span>Otros 32</span><div class="pista"><i style="width:100%;background:#cbd5e1"></i></div><span class="n">152</span>
+        </div>
+        <a class="ayuda" href="#">Ver en el mapa →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- Capacitación ---------- -->
+  <div class="sub-vista" id="sub-capacitacion" hidden>
+    <div class="kpis">
+      <div class="kpi"><div class="v">46</div><div class="l">capacitaciones</div><div class="c">18 obligatorias</div></div>
+      <div class="kpi"><div class="v">214 h</div><div class="l">dictadas</div><div class="c">suma de los días</div></div>
+      <div class="kpi"><div class="v">1.480</div><div class="l">horas-hombre</div><div class="c">solo días asistidos</div></div>
+      <div class="kpi"><div class="v">14,2</div><div class="l">asistentes promedio</div><div class="c">mediana 12</div></div>
+      <div class="kpi"><div class="v">61%</div><div class="l">del cuerpo con ≥ 20 h</div><div class="c">74 de 122</div></div>
+      <div class="kpi"><div class="v">72%</div><div class="l">cumplimiento de obligatorias</div><div class="c">mediana por bombero</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h2>Horas de capacitación por bombero</h2>
+        <p class="sub">Cuántos integrantes en actividad hay en cada tramo de horas · 122 en total</p>
+        <div class="hbar" style="grid-template-columns:5rem 1fr 3rem;">
+          <span>0 h</span><div class="pista"><i style="width:22%"></i></div><span class="n">9</span>
+          <span>1 a 9 h</span><div class="pista"><i style="width:41%"></i></div><span class="n">17</span>
+          <span>10 a 19 h</span><div class="pista"><i style="width:54%"></i></div><span class="n">22</span>
+          <span>20 a 39 h</span><div class="pista"><i style="width:100%"></i></div><span class="n">41</span>
+          <span>40 h o más</span><div class="pista"><i style="width:80%"></i></div><span class="n">33</span>
+        </div>
+        <div class="nota">9 integrantes sin ninguna hora de capacitación en el año. <a href="#" data-ir="personal">Ver cuáles</a></div>
+      </div>
+      <div class="card">
+        <h2>Capacitaciones por nivel</h2>
+        <p class="sub">46 capacitaciones</p>
+        <div class="hbar" style="grid-template-columns:6rem 1fr 3rem;">
+          <span>Cuartel</span><div class="pista"><i style="width:100%"></i></div><span class="n">34</span>
+          <span>Regional</span><div class="pista"><i style="width:21%"></i></div><span class="n">7</span>
+          <span>Federativa <span class="pocos">4</span></span><div class="pista"><i style="width:12%"></i></div><span class="n">4</span>
+          <span>Nacional <span class="pocos">1</span></span><div class="pista"><i style="width:3%"></i></div><span class="n">1</span>
+        </div>
+        <p class="ayuda" style="margin-bottom:0;">Con menos de 5 casos, los porcentajes no se muestran.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- Mantenimiento y móviles ---------- -->
+  <div class="sub-vista" id="sub-moviles" hidden>
+    <div class="kpis">
+      <div class="kpi"><div class="v">63</div><div class="l">mantenimientos</div><div class="c">60% preventivos</div></div>
+      <div class="kpi"><div class="v">$ 3,42 M</div><div class="l">costo total</div><div class="c">repuestos + mano de obra</div></div>
+      <div class="kpi"><div class="v">310</div><div class="l">horas-hombre</div><div class="c">49 en el cuartel · 14 en taller</div></div>
+      <div class="kpi"><div class="v">5</div><div class="l">tareas pendientes abiertas</div><div class="c">2 afectan la operatividad</div></div>
+      <div class="kpi"><div class="v">6 días</div><div class="l">resolución de tareas (mediana)</div><div class="c">P90: 21 días</div></div>
+      <div class="kpi"><div class="v">$ 1,75 M</div><div class="l">en combustible</div><div class="c">1.442 L · 9.325 km</div></div>
+    </div>
+    <div class="card">
+      <h2>Por móvil</h2>
+      <p class="sub">Ordenado por costo de mantenimiento</p>
+      <div class="tabla-scroll">
+      <table>
+        <tr><th>Móvil</th><th class="num">Salidas</th><th class="num">Km</th><th class="num">Mantenim.</th><th class="num">Correctivos</th><th class="num">Costo mant.</th><th class="num">L / 100 km</th><th class="num">Tareas abiertas</th></tr>
+        <tr><td>9 · Iveco DY-170</td><td class="num">71</td><td class="num">410</td><td class="num">7</td><td class="num">5</td><td class="num">$ 910.000</td><td class="num">41,0 <span class="pill">autobomba</span></td><td class="num">0</td></tr>
+        <tr><td>62 · VW 13180</td><td class="num">88</td><td class="num">625</td><td class="num">9</td><td class="num">4</td><td class="num">$ 820.000</td><td class="num">29,3 <span class="pill">autobomba</span></td><td class="num">1 <span class="pill alerta">operatividad</span></td></tr>
+        <tr><td>12 · MB Sprinter</td><td class="num">64</td><td class="num">980</td><td class="num">8</td><td class="num">3</td><td class="num">$ 640.000</td><td class="num">15,3</td><td class="num">1</td></tr>
+        <tr><td>4 · Ford Transit</td><td class="num">52</td><td class="num">2.140</td><td class="num">6</td><td class="num">1</td><td class="num">$ 210.000</td><td class="num">11,5</td><td class="num">0</td></tr>
+        <tr><td>21 · Toyota Hilux</td><td class="num">47</td><td class="num">3.320</td><td class="num">5</td><td class="num">1</td><td class="num">$ 180.000</td><td class="num">11,0</td><td class="num">0</td></tr>
+        <tr><td>Otros elementos (edificio, equipos…)</td><td class="num">—</td><td class="num">—</td><td class="num">28</td><td class="num">11</td><td class="num">$ 660.000</td><td class="num">—</td><td class="num">3</td></tr>
+        <tr class="mediana"><td>Total</td><td class="num">322</td><td class="num">7.475</td><td class="num">63</td><td class="num">25</td><td class="num">$ 3.420.000</td><td class="num"></td><td class="num">5</td></tr>
+      </table>
+      </div>
+      <p class="ayuda" style="margin-bottom:0;">Salidas: partes con ese móvil (sin canceladas). El detalle de combustible está en su pantalla propia.</p>
+    </div>
+  </div>
+
+  <!-- ---------- Gestión ---------- -->
+  <div class="sub-vista" id="sub-gestion" hidden>
+    <div class="kpis">
+      <div class="kpi"><div class="v">5,2 h</div><div class="l">llamada → cierre del parte</div><div class="c">mediana · P90: 21 h</div></div>
+      <div class="kpi"><div class="v">14</div><div class="l">partes cerrados después de 24 h</div><div class="c">4% del total</div></div>
+      <div class="kpi"><div class="v">7</div><div class="l">partes corregidos tras el cierre</div><div class="c">con motivo y firma</div></div>
+      <div class="kpi"><div class="v">212</div><div class="l">citaciones</div><div class="c">86% cumplidas · 11 sin justificar</div></div>
+      <div class="kpi"><div class="v">38</div><div class="l">órdenes de compra</div><div class="c">$ 2,15 M ejecutado</div></div>
+      <div class="kpi"><div class="v">412</div><div class="l">participaciones cobradas</div><div class="c">salidas y capacitaciones</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h2>Calidad de los datos de los partes</h2>
+        <p class="sub">% de los 354 partes con cada dato completo</p>
+        <div class="hbar" style="grid-template-columns:9rem 1fr 3rem;">
+          <span>Horarios completos</span><div class="pista"><i style="width:96%"></i></div><span class="n">96%</span>
+          <span>Km de regreso</span><div class="pista"><i style="width:88%"></i></div><span class="n">88%</span>
+          <span>Coordenadas</span><div class="pista"><i style="width:71%"></i></div><span class="n">71%</span>
+          <span>Barrio</span><div class="pista"><i style="width:71%"></i></div><span class="n">71%</span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Pagos por actividades</h2>
+        <div class="candado">🔒 Los montos los ven solo quienes tienen el permiso de pagos (Tesorería y Estadística). Con ese permiso, acá se ve el total pagado por mes y por tipo de actividad.</div>
+        <p class="ayuda" style="margin-bottom:0;">Sin el permiso, se ven solo las cantidades: 412 participaciones cobradas (231 salidas, 181 capacitaciones).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 2. PERSONAL -->
+<section class="vista" id="personal">
+  <div class="card">
+    <div class="acciones" style="justify-content:space-between;">
+      <div><h1>Estadísticas del personal</h1><div class="ayuda">Una fila por integrante · 2026 al 14/11 · Lo ven Jefe, Estadística y Graduados.</div></div>
+      <div class="acciones"><a class="btn gris" href="#">Exportar a Excel</a></div>
+    </div>
+    <div class="filtros" style="margin-top:.8rem;grid-template-columns:repeat(4,1fr) auto;">
+      <div><label>Año</label><select><option>2026</option><option>2025</option></select></div>
+      <div><label>Escalafón</label><select><option>Todos</option><option>Oficiales</option><option>Suboficiales</option><option>Bomberos</option></select></div>
+      <div><label>Grupo de guardia</label><select><option>Todos</option><option>Grupo 1</option><option>Grupo 2</option><option>Grupo 3</option></select></div>
+      <div><label>Estado</label><select><option>Activo y Aspirante</option><option>Todos</option></select></div>
+      <div><button class="btn gris" type="button">Aplicar</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tabla-scroll">
+    <table>
+      <tr>
+        <th class="ord">N°</th><th class="ord">Integrante</th><th class="ord num" title="Meses del período en actividad (descuenta licencias e ingresos)">Meses act.</th>
+        <th class="ord num">Salidas</th><th class="ord num" title="Salidas a las que fue / salidas ocurridas mientras estaba en actividad">Asistencia</th>
+        <th class="ord num">Convocado</th><th class="ord num" title="Sin apresto">Horas interv.</th>
+        <th class="ord num">Capac. (h)</th><th class="ord num">Oblig.</th><th class="ord num">Mant. (h)</th>
+        <th class="ord num">Citaciones</th><th class="ord num">Meses con actividad</th><th></th>
+      </tr>
+      <tr><td>041</td><td><a class="persona" href="#">Pérez, Juan Carlos</a><br><span class="ayuda">Oficial · G1</span></td>
+        <td class="num">10,5</td><td class="num alto">31</td><td class="num">9,4%</td><td class="num alto">12</td><td class="num">38</td>
+        <td class="num alto">46</td><td class="num alto">89%</td><td class="num">6</td><td class="num">100%</td><td class="num">11 / 11</td><td></td></tr>
+      <tr><td>087</td><td><a class="persona" href="#" data-ir="ficha">Rodríguez, Pablo</a><br><span class="ayuda">Bombero · G2</span></td>
+        <td class="num">10,5</td><td class="num alto">47</td><td class="num alto">14,2%</td><td class="num alto">21</td><td class="num alto">61</td>
+        <td class="num">34</td><td class="num">83%</td><td class="num alto">18</td><td class="num">93%</td><td class="num">11 / 11</td><td></td></tr>
+      <tr><td>112</td><td><a class="persona" href="#">Gómez, María Laura</a><br><span class="ayuda">Bombero · G2</span></td>
+        <td class="num">10,5</td><td class="num alto">39</td><td class="num alto">11,8%</td><td class="num alto">15</td><td class="num alto">52</td>
+        <td class="num">28</td><td class="num">78%</td><td class="num alto">9</td><td class="num">100%</td><td class="num">11 / 11</td><td></td></tr>
+      <tr><td>118</td><td><a class="persona" href="#">Luna, Esteban</a><br><span class="ayuda">Bombero · G1</span></td>
+        <td class="num">10,5</td><td class="num">22</td><td class="num">6,7%</td><td class="num">4</td><td class="num">30</td>
+        <td class="num bajo">12</td><td class="num bajo">44%</td><td class="num">4</td><td class="num">75%</td><td class="num">9 / 11</td><td></td></tr>
+      <tr><td>125</td><td><a class="persona" href="#">Sosa, Lucía</a><br><span class="ayuda">Bombero · G3</span></td>
+        <td class="num">10,5</td><td class="num bajo">9</td><td class="num bajo">2,7%</td><td class="num bajo">1</td><td class="num bajo">11</td>
+        <td class="num alto">52</td><td class="num alto">94%</td><td class="num bajo">0</td><td class="num">100%</td><td class="num">10 / 11</td><td></td></tr>
+      <tr><td>131</td><td><a class="persona" href="#">Medina, Diego</a><br><span class="ayuda">Aspirante · G3 · ingresó 15/05</span></td>
+        <td class="num">6,0</td><td class="num">14</td><td class="num">7,6%</td><td class="num">3</td><td class="num">18</td>
+        <td class="num alto">41</td><td class="num alto">100%</td><td class="num">2</td><td class="num">100%</td><td class="num">6 / 6</td><td></td></tr>
+      <tr><td>140</td><td><a class="persona" href="#">Herrera, Nicolás</a><br><span class="ayuda">Bombero · G1 · licencia mar–may</span></td>
+        <td class="num">7,0</td><td class="num bajo">5</td><td class="num bajo">2,3%</td><td class="num bajo">0</td><td class="num bajo">6</td>
+        <td class="num bajo">4</td><td class="num bajo">22%</td><td class="num bajo">0</td><td class="num bajo">50%</td><td class="num">4 / 7</td><td><span class="pill alerta">2 meses sin actividad</span></td></tr>
+      <tr class="mediana"><td></td><td>Mediana del cuerpo</td><td class="num">10,5</td><td class="num">24</td><td class="num">7,3%</td><td class="num">6</td><td class="num">32</td>
+        <td class="num">24</td><td class="num">72%</td><td class="num">5</td><td class="num">90%</td><td class="num">10</td><td></td></tr>
+    </table>
+    </div>
+    <p class="ayuda">
+      ▲ en verde: entre el 25% más alto del cuerpo · ▼ en naranja: entre el 25% más bajo. Se compara con todo el cuerpo (o con el escalafón, según el filtro).<br>
+      <b>Asistencia</b> usa como denominador las salidas ocurridas mientras estaba en actividad: Medina (ingresó en mayo) y Herrera (licencia) se comparan con justicia.
+      <b>Horas de intervención</b> no cuentan el apresto. <b>Capacitación</b>: solo los días asistidos.
+    </p>
+  </div>
+</section>
+
+<!-- ======================================================= 3. FICHA -->
+<section class="vista" id="ficha">
+  <div class="card">
+    <div class="acciones" style="justify-content:space-between;">
+      <div>
+        <div class="ayuda">Bombero · Legajo 1102 · N° de mérito 087/2026 · Grupo de guardia 2 · en actividad todo el período</div>
+        <h1>Rodríguez, Pablo — 2026</h1>
+      </div>
+      <div class="acciones"><select style="width:auto;"><option>2026</option><option>2025</option></select><a class="btn gris" href="#" data-ir="personal">Volver</a></div>
+    </div>
+    <p class="ayuda" style="margin:.4rem 0 0 0;">Cada bombero ve <b>solo su propia ficha</b> desde Mi perfil → Mis estadísticas. Jefe, Estadística y Graduados ven la de cualquiera.</p>
+  </div>
+
+  <div class="comp" style="margin-bottom:1rem;">
+    <div class="kpi"><div class="v">47</div><div class="l">salidas</div><div class="c">mediana del cuerpo: 24 · percentil 94</div><div class="barra"><i style="width:94%"></i><b style="left:50%"></b></div></div>
+    <div class="kpi"><div class="v">14,2%</div><div class="l">asistencia a salidas</div><div class="c">47 de 330 salidas · mediana 7,3%</div><div class="barra"><i style="width:93%"></i><b style="left:50%"></b></div></div>
+    <div class="kpi"><div class="v">61 h</div><div class="l">en intervenciones</div><div class="c">sin apresto · mediana 32 h</div><div class="barra"><i style="width:91%"></i><b style="left:50%"></b></div></div>
+    <div class="kpi"><div class="v">34 h</div><div class="l">de capacitación</div><div class="c">días asistidos · mediana 24 h</div><div class="barra"><i style="width:68%"></i><b style="left:50%"></b></div></div>
+    <div class="kpi"><div class="v">15 / 18</div><div class="l">obligatorias asistidas</div><div class="c">83% · mediana 72%</div><div class="barra"><i style="width:66%"></i><b style="left:50%"></b></div></div>
+    <div class="kpi"><div class="v">18 h</div><div class="l">en mantenimiento</div><div class="c">8 trabajos · mediana 5 h</div><div class="barra"><i style="width:90%"></i><b style="left:50%"></b></div></div>
+    <div class="kpi"><div class="v">13 / 14</div><div class="l">citaciones cumplidas</div><div class="c">1 justificada · 0 sin justificar</div><div class="barra"><i style="width:45%"></i><b style="left:50%"></b></div></div>
+    <div class="kpi"><div class="v">17</div><div class="l">participaciones cobradas</div><div class="c">9 salidas · 8 capacitaciones</div><div class="barra"><i style="width:80%"></i><b style="left:50%"></b></div></div>
+  </div>
+  <p class="ayuda" style="margin:-.4rem 0 1rem 0;">Barra = percentil del bombero en el cuerpo · marca negra = mediana (percentil 50). Los montos cobrados se ven en Mis pagos.</p>
+
+  <div class="grid2">
+    <div class="card grafico">
+      <h2>Salidas por mes</h2>
+      <p class="sub">Línea punteada: mediana mensual del cuerpo (2)</p>
+      <svg viewBox="0 0 520 200" role="img" aria-label="Salidas por mes de Rodríguez, Pablo">
+        <g stroke="var(--grilla)"><line x1="30" y1="170" x2="510" y2="170"/><line x1="30" y1="120" x2="510" y2="120"/><line x1="30" y1="70" x2="510" y2="70"/></g>
+        <g font-size="11" fill="var(--gris)" text-anchor="end"><text x="24" y="174">0</text><text x="24" y="124">3</text><text x="24" y="74">6</text></g>
+        <!-- 1 salida = 16,7 px -->
+        <g fill="var(--s1)">
+          <rect x="40"  y="86.5"  width="30" height="83.5" rx="4"><title>Enero: 5</title></rect>
+          <rect x="83"  y="103.2" width="30" height="66.8" rx="4"><title>Febrero: 4</title></rect>
+          <rect x="126" y="103.2" width="30" height="66.8" rx="4"><title>Marzo: 4</title></rect>
+          <rect x="169" y="119.9" width="30" height="50.1" rx="4"><title>Abril: 3</title></rect>
+          <rect x="212" y="103.2" width="30" height="66.8" rx="4"><title>Mayo: 4</title></rect>
+          <rect x="255" y="119.9" width="30" height="50.1" rx="4"><title>Junio: 3</title></rect>
+          <rect x="298" y="103.2" width="30" height="66.8" rx="4"><title>Julio: 4</title></rect>
+          <rect x="341" y="86.5"  width="30" height="83.5" rx="4"><title>Agosto: 5</title></rect>
+          <rect x="384" y="86.5"  width="30" height="83.5" rx="4"><title>Septiembre: 5</title></rect>
+          <rect x="427" y="69.8"  width="30" height="100.2" rx="4"><title>Octubre: 6</title></rect>
+          <rect x="470" y="103.2" width="30" height="66.8" rx="4" fill="#9ec5f4"><title>Noviembre (al 14/11): 4</title></rect>
+        </g>
+        <line x1="30" y1="136.6" x2="510" y2="136.6" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <g font-size="10.5" fill="var(--gris)" text-anchor="middle">
+          <text x="55" y="186">E</text><text x="98" y="186">F</text><text x="141" y="186">M</text><text x="184" y="186">A</text><text x="227" y="186">M</text><text x="270" y="186">J</text>
+          <text x="313" y="186">J</text><text x="356" y="186">A</text><text x="399" y="186">S</text><text x="442" y="186">O</text><text x="485" y="186">N*</text>
+        </g>
+      </svg>
+    </div>
+    <div class="card">
+      <h2>Cómo participó en las 47 salidas</h2>
+      <p class="sub">Por tipo de siniestro</p>
+      <div class="hbar" style="grid-template-columns:8rem 1fr 2.4rem;">
+        <span>02 · Accidentes</span><div class="pista"><i style="width:100%"></i></div><span class="n">17</span>
+        <span>01 · Incendio</span><div class="pista"><i style="width:82%"></i></div><span class="n">14</span>
+        <span>05 · Mant. / tareas</span><div class="pista"><i style="width:53%"></i></div><span class="n">9</span>
+        <span>04 · Rescate</span><div class="pista"><i style="width:24%"></i></div><span class="n">4</span>
+        <span>03 · Salvataje</span><div class="pista"><i style="width:12%"></i></div><span class="n">2</span>
+        <span>06 · Org. funcional</span><div class="pista"><i style="width:6%"></i></div><span class="n">1</span>
+      </div>
+      <div class="grid2" style="margin-top:.8rem;gap:.8rem;">
+        <div>
+          <p class="sub" style="margin-bottom:.3rem;">Concurrencia</p>
+          <div class="hbar" style="grid-template-columns:5.5rem 1fr 2rem;">
+            <span>En el cuartel</span><div class="pista"><i style="width:100%"></i></div><span class="n">26</span>
+            <span>Convocado</span><div class="pista"><i style="width:81%"></i></div><span class="n">21</span>
+          </div>
+        </div>
+        <div>
+          <p class="sub" style="margin-bottom:.3rem;">Participación</p>
+          <div class="hbar" style="grid-template-columns:5.5rem 1fr 2rem;">
+            <span>Interviniente</span><div class="pista"><i style="width:100%"></i></div><span class="n">38</span>
+            <span>Chofer</span><div class="pista"><i style="width:16%"></i></div><span class="n">6</span>
+            <span>Apresto</span><div class="pista"><i style="width:8%"></i></div><span class="n">3</span>
+          </div>
+        </div>
+      </div>
+      <p class="ayuda" style="margin-bottom:0;">Las 3 salidas como apresto cuentan como participación pero no suman horas. 9 salidas nocturnas (22 a 6 h) y 12 en fin de semana.</p>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+  function ir(vista) {
+    document.querySelectorAll(".vista").forEach(v => v.classList.toggle("activa", v.id === vista));
+    document.querySelectorAll(".pestanas button").forEach(b => b.classList.toggle("activa", b.dataset.vista === vista));
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll(".pestanas button").forEach(b => b.addEventListener("click", () => ir(b.dataset.vista)));
+  document.querySelectorAll("[data-ir]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); ir(el.dataset.ir); }));
+  document.querySelectorAll("#subtabs a").forEach(a => a.addEventListener("click", e => {
+    e.preventDefault();
+    document.querySelectorAll("#subtabs a").forEach(x => x.classList.toggle("activa", x === a));
+    document.querySelectorAll(".sub-vista").forEach(s => s.hidden = s.id !== "sub-" + a.dataset.sub);
+  }));
+</script>
+</body>
+</html>

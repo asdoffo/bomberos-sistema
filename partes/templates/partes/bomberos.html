@@ -1,0 +1,57 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}Bomberos — Bomberos Villa María{% endblock %}
+
+{% block estilos %}
+  .cabecera { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.6rem; }
+  .filtros { display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; margin-top:1rem; }
+  .filtros input, .filtros select { margin-top:0 !important; width:auto; }
+  .filtros input[type=search] { flex:1; min-width:200px; }
+  .lista a.bombero { display:grid; grid-template-columns:3.5rem 1fr auto; gap:0.2rem 0.9rem; align-items:center; padding:0.75rem 0.4rem; border-bottom:1px solid var(--borde); text-decoration:none; color:var(--texto); }
+  .lista a.bombero:hover { background:#fafafa; }
+  .merito { font-weight:700; font-size:1.05rem; color:var(--rojo); text-align:center; }
+  .linea2 { color:var(--gris); font-size:0.83rem; }
+  .salidas { text-align:right; font-size:0.85rem; color:var(--gris); }
+  .salidas b { display:block; font-size:1.1rem; color:var(--texto); }
+{% endblock %}
+
+{% block contenido %}
+<div class="card">
+  <div class="cabecera">
+    <h1 style="margin:0;">Bomberos</h1>
+    {% if perms.partes.add_integrante %}<a class="btn" href="{% url 'nuevo_bombero' %}">Nuevo integrante</a>{% endif %}
+  </div>
+
+  <form class="filtros" method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por apellido, nombre, legajo o DNI…" aria-label="Buscar">
+    <select name="escalafon" aria-label="Escalafón">
+      <option value="">Todos los escalafones</option>
+      {% for valor, nombre in escalafones %}<option value="{{ valor }}" {% if escalafon == valor %}selected{% endif %}>{{ nombre }}</option>{% endfor %}
+    </select>
+    <select name="estado" aria-label="Estado">
+      <option value="">Todos los estados</option>
+      {% for e in estados %}<option value="{{ e.pk }}" {% if estado == e.pk|stringformat:"s" %}selected{% endif %}>{{ e }}</option>{% endfor %}
+    </select>
+    <select name="grupo" aria-label="Grupo de guardia">
+      <option value="">Todos los grupos</option>
+      {% for valor, nombre in grupos %}<option value="{{ valor }}" {% if grupo == valor|stringformat:"s" %}selected{% endif %}>{{ nombre }}</option>{% endfor %}
+    </select>
+    <button class="btn gris" type="submit">Buscar</button>
+  </form>
+
+  <div class="lista" style="margin-top:0.6rem;">
+    {% for i, merito in filas %}
+      <a class="bombero" href="{% url 'ficha_bombero' i.pk %}">
+        <span class="merito" title="N° {{ anio }}">{{ merito|stringformat:"03d"|default:"—" }}</span>
+        <span>
+          <b>{{ i.apellido }}, {{ i.nombre }}</b><br>
+          <span class="linea2">{{ i.rango }} ({{ i.rango.get_escalafon_display }}) · {{ i.estado }}{% if i.grupo_guardia %} · {{ i.get_grupo_guardia_display }}{% endif %} · Legajo {{ i.legajo }}{% if i.telefono %} · Tel. {{ i.telefono }}{% endif %}</span>
+        </span>
+        <span class="salidas"><b>{{ i.salidas_anio }}</b>salidas {{ anio }}</span>
+      </a>
+    {% empty %}
+      <p class="vacio" style="text-align:center;padding:2rem 0;">No hay integrantes que coincidan.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

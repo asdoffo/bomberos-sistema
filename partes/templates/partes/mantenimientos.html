@@ -1,0 +1,59 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}Mantenimientos {{ anio }} — Bomberos Villa María{% endblock %}
+
+{% block estilos %}
+  .cabecera { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.6rem; }
+  .herramientas { display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center; margin-top:1rem; }
+  .herramientas select { width:auto; margin-top:0 !important; }
+  .buscador { flex:1; min-width:200px; display:flex; gap:0.4rem; }
+  .buscador input { margin-top:0 !important; }
+  .lista a.fila { display:grid; grid-template-columns:auto 1fr auto; gap:0.2rem 0.9rem; align-items:center; padding:0.8rem 0.4rem; border-bottom:1px solid var(--borde); text-decoration:none; color:var(--texto); }
+  .lista a.fila:hover { background:#fafafa; }
+  .numero { font-weight:700; font-size:1.05rem; color:var(--rojo); min-width:4.5rem; }
+  .linea2 { color:var(--gris); font-size:0.83rem; }
+  .lado { color:var(--gris); font-size:0.85rem; white-space:nowrap; text-align:right; }
+  @media (max-width:640px) { .lista a.fila { grid-template-columns:auto 1fr; } .lado { grid-column:2; text-align:left; } }
+{% endblock %}
+
+{% block contenido %}
+<div class="card">
+  <div class="cabecera">
+    <h1 style="margin:0;">Mantenimiento</h1>
+    {% if perms.partes.add_mantenimiento %}<a class="btn" href="{% url 'nuevo_mantenimiento' %}{% if movil %}?movil={{ movil }}{% endif %}">Nuevo mantenimiento</a>{% endif %}
+  </div>
+
+  <form class="herramientas" method="get">
+    <select name="anio" aria-label="Año" onchange="this.form.submit()">
+      {% for a in anios %}<option value="{{ a }}" {% if a == anio %}selected{% endif %}>{{ a }}</option>{% endfor %}
+    </select>
+    <select name="movil" aria-label="Móvil" onchange="this.form.submit()">
+      <option value="">Todo</option>
+      {% for v in moviles %}<option value="{{ v.pk }}" {% if v.pk|stringformat:"s" == movil %}selected{% endif %}>{{ v }}</option>{% endfor %}
+      <option value="otros" {% if movil == "otros" %}selected{% endif %}>Otros (sin móvil)</option>
+    </select>
+    <span class="buscador">
+      <input type="search" name="q" value="{{ q }}" placeholder="Buscar por motivo, trabajo o taller…" aria-label="Buscar">
+      <button class="btn gris" type="submit">Buscar</button>
+    </span>
+  </form>
+  {% if costo_anio %}<p class="ayuda" style="margin-bottom:0;">Costo estimado de lo listado: $ {{ costo_anio|floatformat:"2g" }}</p>{% endif %}
+
+  <div class="lista" style="margin-top:0.6rem;">
+    {% for m in mantenimientos %}
+      <a class="fila" href="{% url 'detalle_mantenimiento' m.pk %}">
+        <span class="numero">{{ m.numero_correlativo }}/{{ m.anio }}</span>
+        <span>
+          <b>{{ m.que }}</b> · {{ m.get_tipo_display }}{% if m.motivo %} · {{ m.motivo }}{% endif %}<br>
+          <span class="linea2">{{ m.fecha|date:"d/m/Y" }} · {{ m.get_lugar_display }}{% if m.a_cargo %} · A cargo: {{ m.a_cargo.apellido }}{% endif %}</span>
+        </span>
+        <span class="lado">{{ m.cantidad }} bombero{{ m.cantidad|pluralize }}{% if m.costo_total %}<br>$ {{ m.costo_total|floatformat:"2g" }}{% endif %}</span>
+      </a>
+    {% empty %}
+      <p class="vacio" style="text-align:center;padding:2rem 0;">
+        {% if q or movil %}No hay mantenimientos que coincidan. <a href="?anio={{ anio }}">Ver todos</a>{% else %}No hay mantenimientos cargados en {{ anio }}.{% endif %}
+      </p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

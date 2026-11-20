@@ -1,0 +1,18 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}{% if movil.pk %}Editar {{ movil }}{% else %}Nuevo móvil{% endif %} — Bomberos Villa María{% endblock %}
+
+{% block contenido %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="card" style="max-width:820px;">
+    <h1>{% if movil.pk %}{{ movil }}{% else %}Nuevo móvil{% endif %}</h1>
+    {% if form.non_field_errors %}<div class="msg error">{{ form.non_field_errors }}</div>{% endif %}
+    {% include "partes/_campos.html" with form=form %}
+  </div>
+  <div class="barra-guardar">
+    <button type="submit" class="btn">Guardar</button>
+    <a class="btn gris" href="{% url 'moviles' %}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

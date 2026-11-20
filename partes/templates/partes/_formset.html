@@ -1,0 +1,25 @@
+{% comment %}Formset como tarjetas apiladas + botón para agregar filas sin recargar.
+   Uso: include con formset=... nombre="integrante" fila="partes/_fila_xxx.html" (fila es opcional){% endcomment %}
+<div data-formset="{{ formset.prefix }}">
+  {{ formset.management_form }}
+  {% if formset.non_form_errors %}<div class="msg error">{{ formset.non_form_errors }}</div>{% endif %}
+  <div class="filas">
+    {% for form in formset %}
+      <div class="fila-form {% if forloop.counter > formset.initial_form_count %}nueva{% endif %}">
+        {% if fila %}{% include fila with form=form %}{% else %}{% include "partes/_campos.html" with form=form %}{% endif %}
+        {% if forloop.counter <= formset.initial_form_count %}
+          <label class="quitar">{{ form.DELETE }} Quitar este {{ nombre }}</label>
+        {% else %}
+          <button type="button" class="btn gris chico" data-quitar-fila style="margin-top:0.6rem;">Quitar este {{ nombre }}</button>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  <button type="button" class="btn gris chico" data-agregar style="margin-top:0.7rem;">Agregar {{ nombre }}</button>
+  <template id="molde-{{ formset.prefix }}">
+    <div class="fila-form nueva">
+      {% if fila %}{% include fila with form=formset.empty_form %}{% else %}{% include "partes/_campos.html" with form=formset.empty_form %}{% endif %}
+      <button type="button" class="btn gris chico" data-quitar-fila style="margin-top:0.6rem;">Quitar este {{ nombre }}</button>
+    </div>
+  </template>
+</div>

@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bomberos cercanos (mock)</title>
+<style>
+  :root { --rojo:#c0392b; --rojo-suave:#fdecea; --fondo:#f3f4f6; --texto:#1f2937; --gris:#6b7280; --borde:#e5e7eb; --azul:#2563eb; --verde:#15803d; }
+  * { box-sizing:border-box; }
+  body { font-family:system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background:var(--fondo); color:var(--texto); margin:0; padding:1rem; line-height:1.45; }
+  h1 { color:var(--rojo); font-size:1.35rem; margin:0 0 .2rem 0; }
+  h2 { font-size:1.05rem; margin:0 0 .6rem 0; }
+  .contenedor { max-width:1100px; margin:0 auto; }
+  .card { background:#fff; padding:1rem 1.2rem; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.08); border:1px solid var(--borde); margin-bottom:1rem; }
+  .btn { display:inline-block; background:var(--rojo); color:#fff; border:0; padding:.5rem .9rem; border-radius:8px; font-weight:600; font-size:.9rem; cursor:pointer; text-decoration:none; font-family:inherit; }
+  .btn.gris { background:#e5e7eb; color:#111; } .btn.verde { background:var(--verde); } .btn.chico { padding:.25rem .55rem; font-size:.78rem; }
+  .acciones { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+  .ayuda { color:var(--gris); font-size:.85rem; }
+  .aviso-mock { max-width:1100px; margin:0 auto 1rem auto; background:#fef9c3; border:1px dashed #ca8a04; border-radius:8px; padding:.6rem .9rem; font-size:.85rem; }
+  .pestanas { display:flex; gap:.3rem; margin-top:.5rem; flex-wrap:wrap; }
+  .pestanas button { font:inherit; font-size:.85rem; padding:.35rem .8rem; border-radius:999px; border:1px solid #ca8a04; background:#fff; cursor:pointer; }
+  .pestanas button.activa { background:#ca8a04; color:#fff; }
+  .vista { display:none; } .vista.activa { display:block; }
+  label { display:block; font-size:.85rem; font-weight:600; margin:.6rem 0 .2rem 0; }
+  input, select { width:100%; font:inherit; padding:.45rem .55rem; border:1px solid #cbd5e1; border-radius:8px; background:#fff; }
+  .fila { display:grid; grid-template-columns:2fr 1fr 1fr; gap:.6rem; }
+  .sugerencia-dir { border:1px solid #bfdbfe; background:#eff6ff; border-radius:8px; padding:.45rem .65rem; font-size:.88rem; margin-top:.4rem; }
+
+  .panel { display:grid; grid-template-columns:1fr 1.1fr; gap:1rem; }
+  .cercano { display:grid; grid-template-columns:auto 1fr auto; gap:.2rem .7rem; align-items:center; padding:.55rem .2rem; border-bottom:1px solid var(--borde); font-size:.88rem; }
+  .cercano:last-child { border-bottom:0; }
+  .dist { font-weight:800; font-size:1rem; color:var(--azul); min-width:4.2rem; text-align:right; font-variant-numeric:tabular-nums; }
+  .dist.lejos { color:var(--gris); }
+  .nombre { font-weight:700; }
+  .meta { color:var(--gris); font-size:.8rem; grid-column:2; }
+  .tel { grid-column:2; font-size:.85rem; }
+  .tel a { color:var(--azul); text-decoration:none; font-weight:600; margin-right:.5rem; }
+  .pill { display:inline-block; font-size:.7rem; font-weight:700; padding:.05rem .45rem; border-radius:999px; background:#e5e7eb; color:#374151; white-space:nowrap; }
+  .pill.ok { background:#dcfce7; color:#14532d; } .pill.alerta { background:#fee2e2; color:#991b1b; } .pill.info { background:#e0e7ff; color:#3730a3; }
+  .separador { font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; color:var(--gris); margin:.7rem 0 .2rem 0; }
+  .mapa svg { width:100%; height:auto; display:block; border-radius:8px; border:1px solid var(--borde); }
+  .leyenda { display:flex; gap:1rem; flex-wrap:wrap; font-size:.8rem; color:var(--gris); margin-top:.4rem; }
+  .punto { display:inline-block; width:.7rem; height:.7rem; border-radius:50%; vertical-align:middle; margin-right:.25rem; }
+  .nota { background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:.55rem .75rem; font-size:.84rem; margin-top:.6rem; }
+  .nota.alerta { background:var(--rojo-suave); border-color:#fecaca; }
+
+  table { width:100%; border-collapse:collapse; font-size:.88rem; }
+  th, td { padding:.45rem .5rem; border-bottom:1px solid var(--borde); text-align:left; }
+  th { font-size:.78rem; text-transform:uppercase; letter-spacing:.03em; color:#4b5563; background:#f9fafb; }
+
+  @media (max-width:900px) { .panel { grid-template-columns:1fr; } .fila { grid-template-columns:1fr; } }
+  @media (max-width:520px) { body { padding:.5rem; } }
+</style>
+</head>
+<body>
+
+<div class="aviso-mock">
+  <b>Mock para corregir</b>: personas, domicilios y teléfonos inventados. El mapa es un dibujo; en el sistema sería un mapa real (OpenStreetMap). Pantallas:
+  <div class="pestanas">
+    <button type="button" class="activa" data-vista="parte">1. Nuevo parte con sugeridos</button>
+    <button type="button" data-vista="ficha">2. Domicilio en la ficha del bombero</button>
+    <button type="button" data-vista="faltan">3. Domicilios sin ubicar</button>
+    <button type="button" data-vista="config">4. Configuración (admin)</button>
+  </div>
+</div>
+
+<div class="contenedor">
+
+<!-- ================= 1. NUEVO PARTE ================= -->
+<section class="vista activa" id="parte">
+  <div class="card">
+    <div class="ayuda">Nuevo parte · datos de la llamada (formulario actual)</div>
+    <h1>Ubicación del siniestro</h1>
+    <div class="fila">
+      <div><label>Calle y altura</label><input value="Belgrano 450"></div>
+      <div><label>Barrio</label><input value="Centro"></div>
+      <div><label>Esquina con</label><input placeholder="(si es una esquina)"></div>
+    </div>
+    <div class="sugerencia-dir">✔ Belgrano 450, Centro — ubicada en el mapa.</div>
+  </div>
+
+  <div class="card">
+    <div class="acciones" style="justify-content:space-between;">
+      <div>
+        <h2 style="margin:0;">Bomberos que viven cerca</h2>
+        <div class="ayuda">En un radio de <b>500 m</b> de Belgrano 450 (distancia en línea recta). Activos y Aspirantes con domicilio ubicado, de cualquier localidad.</div>
+      </div>
+      <div class="acciones">
+        <span class="ayuda">Radio:</span>
+        <select style="width:auto;"><option>500 m</option><option>1.000 m</option><option>2.000 m</option></select>
+        <button class="btn gris chico" type="button" id="alternar">Ocultar lista</button>
+      </div>
+    </div>
+    <div class="nota" style="margin-top:.6rem;">🚒 <b>Cuartel → siniestro: 570 m</b> (en línea recta). Los marcados «más cerca que el cuartel» viven más cerca del siniestro que el cuartel.</div>
+
+    <div class="panel" style="margin-top:.7rem;" id="contenido-sugeridos">
+      <div>
+        <div class="cercano">
+          <span class="dist">180 m</span>
+          <span class="nombre">Gómez, María Laura <span class="pill">Bombero</span> <span class="pill ok">más cerca que el cuartel</span> <span class="pill info">Grupo 2</span></span>
+          <span></span>
+          <span class="meta">Mendoza 1234 · Leg. 1188</span>
+          <span class="tel"><a href="#">📞 (0353) 15 000-0001</a><a href="#">WhatsApp</a></span>
+        </div>
+        <div class="cercano">
+          <span class="dist">320 m</span>
+          <span class="nombre">Luna, Esteban <span class="pill">Bombero</span> <span class="pill ok">más cerca que el cuartel</span> <span class="pill info">Grupo 1</span></span>
+          <span></span>
+          <span class="meta">San Juan 567 · Leg. 1203 · <span class="pill ok">chofer</span></span>
+          <span class="tel"><a href="#">📞 (0353) 15 000-0002</a><a href="#">WhatsApp</a></span>
+        </div>
+        <div class="cercano">
+          <span class="dist">460 m</span>
+          <span class="nombre">Rodríguez, Pablo <span class="pill">Bombero</span> <span class="pill ok">más cerca que el cuartel</span> <span class="pill info">Grupo 2</span></span>
+          <span></span>
+          <span class="meta">Corrientes 890 · Leg. 1102</span>
+          <span class="tel"><a href="#">📞 (0353) 15 000-0003</a><a href="#">WhatsApp</a></span>
+        </div>
+
+        <div class="separador">Fuera del radio — los más cercanos</div>
+        <div class="cercano">
+          <span class="dist lejos">610 m</span>
+          <span class="nombre">Sosa, Lucía <span class="pill">Bombero</span></span>
+          <span></span>
+          <span class="meta">Tucumán 210 · Leg. 1215</span>
+          <span class="tel"><a href="#">📞 (0353) 15 000-0004</a><a href="#">WhatsApp</a></span>
+        </div>
+        <div class="cercano">
+          <span class="dist lejos">780 m</span>
+          <span class="nombre">Medina, Diego <span class="pill">Aspirante</span></span>
+          <span></span>
+          <span class="meta">Salta 1450 · Leg. 1230</span>
+          <span class="tel"><a href="#">📞 (0353) 15 000-0005</a><a href="#">WhatsApp</a></span>
+        </div>
+        <p class="ayuda" style="margin-bottom:0;">Es solo una lista para llamar: el guardia decide a quién convoca y lo carga en la grilla de personal como siempre.</p>
+      </div>
+
+      <div class="mapa">
+        <svg viewBox="0 0 640 440" role="img" aria-label="Mapa: el siniestro en el centro, círculo de 500 metros y la casa de cada bombero">
+          <rect width="640" height="440" fill="#f8fafc"/>
+          <!-- manzanas -->
+          <g stroke="#e2e8f0" stroke-width="10">
+            <line x1="0" y1="60" x2="640" y2="60"/><line x1="0" y1="140" x2="640" y2="140"/><line x1="0" y1="220" x2="640" y2="220"/>
+            <line x1="0" y1="300" x2="640" y2="300"/><line x1="0" y1="380" x2="640" y2="380"/>
+            <line x1="60" y1="0" x2="60" y2="440"/><line x1="140" y1="0" x2="140" y2="440"/><line x1="220" y1="0" x2="220" y2="440"/>
+            <line x1="300" y1="0" x2="300" y2="440"/><line x1="380" y1="0" x2="380" y2="440"/><line x1="460" y1="0" x2="460" y2="440"/>
+            <line x1="540" y1="0" x2="540" y2="440"/><line x1="620" y1="0" x2="620" y2="440"/>
+          </g>
+          <!-- radio 500 m -->
+          <circle cx="300" cy="220" r="200" fill="rgba(37,99,235,.07)" stroke="#2563eb" stroke-width="2" stroke-dasharray="6 4"/>
+          <text x="300" y="34" font-size="12" fill="#2563eb" text-anchor="middle">500 m</text>
+          <!-- dentro -->
+          <g font-size="12" font-weight="700" fill="#1f2937">
+            <circle cx="360" cy="180" r="8" fill="#15803d" stroke="#fff" stroke-width="2"/><text x="372" y="176">Gómez · 180 m</text>
+            <circle cx="200" cy="300" r="8" fill="#15803d" stroke="#fff" stroke-width="2"/><text x="96" y="322">Luna · 320 m</text>
+            <circle cx="420" cy="359" r="8" fill="#15803d" stroke="#fff" stroke-width="2"/><text x="432" y="363">Rodríguez · 460 m</text>
+          </g>
+          <!-- fuera -->
+          <g font-size="12" fill="#6b7280">
+            <circle cx="100" cy="80" r="7" fill="#9ca3af" stroke="#fff" stroke-width="2"/><text x="112" y="76">Sosa · 610 m</text>
+            <circle cx="590" cy="105" r="7" fill="#9ca3af" stroke="#fff" stroke-width="2"/><text x="508" y="94">Medina · 780 m</text>
+          </g>
+          <!-- siniestro -->
+          <circle cx="300" cy="220" r="11" fill="#c0392b" stroke="#fff" stroke-width="3"/>
+          <text x="300" y="250" font-size="12" font-weight="700" fill="#c0392b" text-anchor="middle">Belgrano 450</text>
+          <!-- cuartel y su distancia al siniestro -->
+          <line x1="460" y1="60" x2="300" y2="220" stroke="#1f2937" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <text x="392" y="132" font-size="11" fill="#1f2937" transform="rotate(-45 392 132)">570 m</text>
+          <rect x="452" y="52" width="16" height="16" fill="#1f2937" rx="3"/><text x="474" y="48" font-size="11" fill="#1f2937">Cuartel</text>
+        </svg>
+        <div class="leyenda">
+          <span><span class="punto" style="background:#c0392b"></span>Siniestro</span>
+          <span><span class="punto" style="background:#15803d"></span>Dentro del radio</span>
+          <span><span class="punto" style="background:#9ca3af"></span>Fuera del radio</span>
+          <span><span class="punto" style="background:#1f2937;border-radius:2px"></span>Cuartel</span>
+        </div>
+        <div class="nota">Tocando un punto se ve el nombre, el domicilio y el teléfono. El mapa necesita internet; sin señal se ve solo la lista.</div>
+      </div>
+    </div>
+    <div class="nota alerta">⚠ 37 integrantes en actividad no tienen el domicilio ubicado en el mapa: no pueden aparecer en esta sugerencia. <a href="#">Ver cuáles</a></div>
+  </div>
+</section>
+
+<!-- ================= 2. FICHA ================= -->
+<section class="vista" id="ficha">
+  <div class="card" style="max-width:720px;margin:0 auto;">
+    <div class="ayuda">Ficha del bombero · Editar · sección Datos personales</div>
+    <h1>Gómez, María Laura (1188)</h1>
+    <div class="fila" style="grid-template-columns:2fr 1fr;">
+      <div><label>Domicilio</label><input value="Mendoza 1234"></div>
+      <div><label>Localidad</label><input value="Villa María"></div>
+    </div>
+    <div class="sugerencia-dir">✔ Mendoza 1234, Barrio Centro — ubicado en el mapa (lat −32,4105 · lon −63,2405). <a href="#">Corregir en el mapa</a></div>
+    <label>Teléfono</label><input value="(0353) 15 000-0001">
+    <label style="font-weight:400;"><input type="checkbox" checked style="width:auto;"> <b>Puede ser sugerido</b> para salidas cerca de su domicilio</label>
+    <p class="ayuda">Los domicilios ya están cargados en el perfil: al guardar (o con el comando de carga inicial) se ubican solos con el mismo buscador que usa el parte, en la localidad del integrante (Villa María, Villa Nueva u otra). Si queda mal ubicado, se puede mover el punto en el mapa. Si el integrante no quiere aparecer en las sugerencias, se destilda.</p>
+    <button class="btn" type="button">Guardar</button>
+  </div>
+</section>
+
+<!-- ================= 3. FALTAN ================= -->
+<section class="vista" id="faltan">
+  <div class="card">
+    <div class="acciones" style="justify-content:space-between;">
+      <div><h1>Domicilios sin ubicar</h1><div class="ayuda">Integrantes en actividad que no pueden ser sugeridos porque falta el domicilio, el teléfono o su ubicación en el mapa.</div></div>
+      <button class="btn" type="button">Ubicar todos los que tienen domicilio</button>
+    </div>
+  </div>
+  <div class="card">
+    <table>
+      <tr><th>Integrante</th><th>Domicilio</th><th>Teléfono</th><th>Problema</th><th></th></tr>
+      <tr><td>Acosta, Marina (1150)</td><td>—</td><td>—</td><td><span class="pill alerta">Sin domicilio</span></td><td><a class="btn gris chico" href="#">Completar</a></td></tr>
+      <tr><td>Benítez, Hugo (1077)</td><td>Pasaje 7 s/n</td><td>(0353) 15 000-0010</td><td><span class="pill alerta">No se encontró en el mapa</span></td><td><a class="btn gris chico" href="#">Ubicar a mano</a></td></tr>
+      <tr><td>Castro, Julián (1121)</td><td>Rivadavia 300</td><td>—</td><td><span class="pill">Sin teléfono</span></td><td><a class="btn gris chico" href="#">Completar</a></td></tr>
+      <tr><td>Díaz, Romina (1240)</td><td>Ruta 158 km 3, zona rural</td><td>(0353) 15 000-0011</td><td><span class="pill alerta">Sin altura: no se pudo ubicar</span></td><td><a class="btn gris chico" href="#">Ubicar a mano</a></td></tr>
+    </table>
+    <p class="ayuda" style="margin-bottom:0;">Se sugieren integrantes de cualquier localidad (Villa Nueva, zona rural…) si su casa queda dentro del radio: lo que hace falta es que el domicilio quede ubicado en el mapa.</p>
+  </div>
+</section>
+
+<!-- ================= 4. CONFIG ================= -->
+<section class="vista" id="config">
+  <div class="card" style="max-width:560px;margin:0 auto;">
+    <div class="ayuda">Admin de Django · Configuración del sistema</div>
+    <h1>Sugerencia de bomberos cercanos</h1>
+    <label>Radio de búsqueda (metros)</label>
+    <input value="500" inputmode="numeric">
+    <div class="ayuda">Entre 100 y 5.000. Distancia en línea recta desde el lugar del siniestro.</div>
+    <label>Mostrar también los más cercanos fuera del radio</label>
+    <input value="3" inputmode="numeric">
+    <div class="ayuda">Si nadie vive dentro del radio, igual se ven estos. 0 = no mostrar.</div>
+    <label>Ubicación del cuartel</label>
+    <input value="General Paz 358 — lat −32,4075 · lon −63,2430">
+    <div class="ayuda">Para la distancia cuartel → siniestro. Se ubica una vez; se puede corregir en el mapa.</div>
+    <p class="ayuda">Se sugieren solo integrantes en estado Activo o Aspirante (fijo).</p>
+    <button class="btn" type="button" style="margin-top:.4rem;">Guardar</button>
+  </div>
+</section>
+
+</div>
+
+<script>
+  function ir(vista) {
+    document.querySelectorAll(".vista").forEach(v => v.classList.toggle("activa", v.id === vista));
+    document.querySelectorAll(".pestanas button").forEach(b => b.classList.toggle("activa", b.dataset.vista === vista));
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll(".pestanas button").forEach(b => b.addEventListener("click", () => ir(b.dataset.vista)));
+  // Mostrar u ocultar la lista sugerida (en el sistema se recuerda en el navegador de cada guardia).
+  const alternar = document.getElementById("alternar"), contenido = document.getElementById("contenido-sugeridos");
+  alternar.addEventListener("click", () => {
+    const oculto = contenido.style.display === "none";
+    contenido.style.display = oculto ? "" : "none";
+    alternar.textContent = oculto ? "Ocultar lista" : "Mostrar bomberos cercanos (3)";
+  });
+</script>
+</body>
+</html>

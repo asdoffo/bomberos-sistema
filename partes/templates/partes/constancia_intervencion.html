@@ -1,0 +1,67 @@
+{% extends "partes/base.html" %}
+{% load static %}
+
+{% block titulo %}Constancia de intervención — Parte {{ parte.numero_correlativo }}/{{ parte.anio }}{% endblock %}
+
+{% block estilos %}
+  .hoja-constancia { max-width:800px; margin:0 auto; background:#fff; position:relative; padding:1.5rem 2rem 4.5rem 2rem;
+                     font-family:Arial, Helvetica, sans-serif; color:#111; min-height:27cm; }
+  .membrete { display:flex; gap:1rem; align-items:center; border-bottom:3px solid var(--rojo); padding-bottom:0.5rem; }
+  .membrete img { width:92px; height:92px; }
+  .membrete .cuartel { font-size:1.55rem; font-weight:800; color:var(--rojo); line-height:1.1; }
+  .membrete .sub { font-size:0.95rem; font-weight:700; }
+  .membrete .datos { font-size:0.78rem; color:#333; }
+  .lugar-fecha { text-align:right; margin:1.5rem 0 2rem 0; }
+  .titulo-constancia { text-align:center; font-weight:700; text-decoration:underline; margin:1.5rem 0; }
+  .cuerpo { text-align:justify; line-height:2; font-size:1rem; }
+  .cuerpo .sangria { display:block; text-indent:6rem; }
+  .editable { outline:1px dashed #d1d5db; padding:0.2rem; border-radius:4px; }
+  .editable:focus { outline:2px solid var(--azul); }
+  .firma { margin:5rem 0 0 auto; width:16rem; text-align:center; border-top:1px solid #111; padding-top:0.3rem; font-size:0.9rem; }
+  .agua { position:absolute; inset:18% 12% auto 12%; opacity:0.07; pointer-events:none; }
+  .agua img { width:100%; }
+  .pie-constancia { position:absolute; left:2rem; right:2rem; bottom:1.2rem; border-top:3px solid var(--rojo);
+                    text-align:center; font-weight:800; color:var(--rojo); padding-top:0.4rem; letter-spacing:0.03em; }
+  .solo-pantalla { max-width:800px; margin:0 auto 1rem auto; }
+  @media print {
+    @page { size:A4; margin:12mm; }
+    body { background:#fff !important; }
+    .lateral, .barra-movil, .msg, .solo-pantalla, noscript { display:none !important; }
+    .con-lateral main, main { margin:0 !important; padding:0 !important; max-width:none !important; }
+    .editable { outline:none; }
+    .hoja-constancia { padding:0 0 4rem 0; min-height:26cm; }
+    .membrete, .pie-constancia, .membrete .cuartel { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+{% endblock %}
+
+{% block contenido %}
+<div class="solo-pantalla card">
+  <div class="acciones" style="margin-top:0;">
+    <button type="button" class="btn" onclick="window.print()">Descargar PDF / Imprimir</button>
+    <a class="btn gris" href="{% url 'detalle_parte' parte.pk %}">Volver al parte</a>
+  </div>
+  <p class="ayuda" style="margin-bottom:0;">Revisá el texto: lo marcado con línea punteada se puede corregir tocándolo, antes de imprimir.
+    No se guarda: es la hoja para entregar. Sin datos de otras personas que no correspondan a quien la pide.</p>
+</div>
+
+<div class="hoja-constancia">
+  <div class="agua"><img src="{% static 'partes/escudo.jpg' %}" alt=""></div>
+  <div class="membrete">
+    <img src="{% static 'partes/escudo.jpg' %}" alt="Escudo de Bomberos Voluntarios de Villa María">
+    <div>
+      <div class="cuartel">Cuerpo de Bomberos Voluntarios de Villa María</div>
+      <div class="sub">Cte. Insp. Mayor B. V. Bautista Gianinetto</div>
+      <div class="datos">General Paz 358 - Tel.: (0353) 4533300 / 4533400 - Emergencias: 100 - 5900 Villa María (Cba)</div>
+    </div>
+  </div>
+
+  <div class="lugar-fecha editable" contenteditable="true">Villa María, {{ fecha_emision }}.-</div>
+  <div class="titulo-constancia">CONSTANCIA DE INTERVENCIÓN</div>
+  <div class="cuerpo">
+    <span class="sangria editable" contenteditable="true">{% if jefe %}{{ jefe.nombre }} {{ jefe.apellido }}{% else %}Gustavo A. Nicola{% endif %} 1er Jefe del Cuerpo de Bomberos Voluntarios de Villa María, deja constancia que:</span>
+    <span class="sangria editable" contenteditable="true">{{ texto }}</span>
+  </div>
+  <div class="firma editable" contenteditable="true">{% if jefe %}{{ jefe.apellido }} {{ jefe.nombre }}<br>{{ jefe.rango }}{% else %}Nicola Gustavo<br>Comisario General{% endif %}<br>1º Jefe C.B.V.V.M</div>
+  <div class="pie-constancia">HOMBRES SIN HORARIOS, NI HONORARIOS</div>
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+{# Una fila del listado de partes. #}
+<a class="parte" href="{% url 'detalle_parte' p.pk %}">
+        <span class="numero">{{ p.numero_correlativo }}/{{ p.anio }}</span>
+        <span>
+          <b>{{ p.tipo }}</b> · {{ p.motivo }}<br>
+          <span class="linea2">{{ p.ubicacion }}{% if p.barrio %} ({{ p.barrio }}){% endif %} · {{ p.fecha|date:"d/m/Y" }}{% if p.hora_llamada %} {{ p.hora_llamada|time:"H:i" }}{% endif %}</span>
+        </span>
+        <span class="estado estado-{{ p.estado_parte.nombre_estado|slugify }}">{{ p.estado_parte }}{% if p.demorado %} · más de 24 h{% endif %}</span>
+        <span class="ver">Ver detalle</span>
+</a>

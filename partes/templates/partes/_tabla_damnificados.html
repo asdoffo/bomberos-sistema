@@ -1,0 +1,18 @@
+{# Tabla de damnificados del detalle. Uso: include con damnificados=... #}
+<div class="tabla-scroll">
+<table>
+  <tr><th>Triage</th><th>Lesión</th><th>Nombre</th><th>Edad</th><th>Sexo</th><th>Rol</th><th>Traslado</th></tr>
+  {% for d in damnificados %}
+  <tr>
+    <td><span class="triage triage-{{ d.triage }}">{{ d.get_triage_display|default:"Sin criterio de atención médica" }}</span></td>
+    <td>{{ d.lesion|default:"—" }}</td>
+    <td>{{ d.apellido_nombre }}</td>
+    <td>{{ d.edad|default:"—" }}</td>
+    <td>{{ d.sexo|default:"—" }}</td>
+    <td>{{ d.get_rol_display|default:"—" }}</td>
+    <td>{% if d.trasladado %}{{ d.trasladado_por }} → {{ d.destino|default:"—" }}{% if d.recibe_dr %} (Dr. {{ d.recibe_dr }}{% if d.recibe_matricula %}, MP {{ d.recibe_matricula }}{% endif %}){% endif %}{% if d.recibe_firma %}<br><img class="firma-recibe" src="{{ d.recibe_firma }}" alt="Firma de quien recibe">{% endif %}{% else %}No{% endif %}
+      {% if not parte.esta_cerrado and not d.trasladado %}<br><a class="ayuda" href="{% url 'nueva_negativa' parte.pk %}?damnificado={{ d.pk }}">Registrar negativa</a>{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+</div>

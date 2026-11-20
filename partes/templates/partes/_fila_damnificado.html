@@ -1,0 +1,43 @@
+{% for hidden in form.hidden_fields %}{% if hidden.name != "recibe_firma" %}{{ hidden }}{% endif %}{% endfor %}
+{% if form.non_field_errors %}<div class="msg error">{{ form.non_field_errors }}</div>{% endif %}
+<div class="campos">
+  {% if form.rodado_numero %}{% include "partes/_campo.html" with campo=form.rodado_numero %}{% endif %}
+  {% include "partes/_campo.html" with campo=form.rol %}
+  {% include "partes/_campo.html" with campo=form.apellido_nombre %}
+  {% include "partes/_campo.html" with campo=form.edad %}
+  {% include "partes/_campo.html" with campo=form.sexo %}
+  {% include "partes/_campo.html" with campo=form.dni %}
+</div>
+<div class="ayuda" style="margin-top:0.6rem;">Datos de contacto: se anotan si se pueden tomar.</div>
+<div class="campos">
+  {% include "partes/_campo.html" with campo=form.domicilio %}
+  {% include "partes/_campo.html" with campo=form.domicilio_numero %}
+  {% include "partes/_campo.html" with campo=form.localidad %}
+  {% include "partes/_campo.html" with campo=form.provincia %}
+  {% include "partes/_campo.html" with campo=form.telefono %}
+</div>
+<div class="campos">
+  {% include "partes/_campo.html" with campo=form.triage %}
+</div>
+<div class="ayuda">Con un color queda como herido. Para sacar el color, tocalo de nuevo.</div>
+<div class="campos">
+  <div class="campo-ancho">{% include "partes/_campo.html" with campo=form.lesion %}</div>
+</div>
+<div class="campos">
+  {% include "partes/_campo.html" with campo=form.trasladado %}
+</div>
+<div data-mostrar-si="trasladado">
+  <div class="campos">
+    {% include "partes/_campo.html" with campo=form.trasladado_por %}
+    {% include "partes/_campo.html" with campo=form.hacia %}
+    <div data-mostrar-si="hacia=otro">{% include "partes/_campo.html" with campo=form.hacia_otro %}</div>
+    {% include "partes/_campo.html" with campo=form.recibe_dr %}
+    {% include "partes/_campo.html" with campo=form.recibe_matricula %}
+  </div>
+  <div class="campo-ancho{% if form.recibe_firma.errors %} tiene-error{% endif %}" data-caja-firma>
+    <label>Firma de quien recibe</label>
+    <div class="ayuda">Con el dedo o con lápiz táctil.</div>
+    {{ form.recibe_firma }}
+    {{ form.recibe_firma.errors }}
+  </div>
+</div>

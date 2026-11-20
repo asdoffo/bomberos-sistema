@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Combustible por unidad (mock)</title>
+<style>
+  :root { --rojo:#c0392b; --rojo-suave:#fdecea; --fondo:#f3f4f6; --texto:#1f2937; --gris:#6b7280; --borde:#e5e7eb; --azul:#2563eb; --verde:#15803d; --ambar:#b45309; }
+  * { box-sizing:border-box; }
+  body { font-family:system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background:var(--fondo); color:var(--texto); margin:0; padding:1rem; line-height:1.45; }
+  h1 { color:var(--rojo); font-size:1.35rem; margin:0 0 .2rem 0; }
+  h2 { font-size:1.05rem; margin:0 0 .6rem 0; }
+  .contenedor { max-width:1100px; margin:0 auto; }
+  .card { background:#fff; padding:1rem 1.2rem; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.08); border:1px solid var(--borde); margin-bottom:1rem; }
+  .btn { display:inline-block; background:var(--rojo); color:#fff; border:0; padding:.5rem .9rem; border-radius:8px; font-weight:600; font-size:.9rem; cursor:pointer; text-decoration:none; font-family:inherit; }
+  .btn.gris { background:#e5e7eb; color:#111; }
+  .acciones { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+  .ayuda { color:var(--gris); font-size:.85rem; }
+  .aviso-mock { max-width:1100px; margin:0 auto 1rem auto; background:#fef9c3; border:1px dashed #ca8a04; border-radius:8px; padding:.6rem .9rem; font-size:.85rem; }
+  .pestanas { display:flex; gap:.3rem; margin-top:.5rem; flex-wrap:wrap; }
+  .pestanas button { font:inherit; font-size:.85rem; padding:.35rem .8rem; border-radius:999px; border:1px solid #ca8a04; background:#fff; cursor:pointer; }
+  .pestanas button.activa { background:#ca8a04; color:#fff; }
+  .vista { display:none; } .vista.activa { display:block; }
+  label { display:block; font-size:.85rem; font-weight:600; margin:.6rem 0 .2rem 0; }
+  input, select, textarea { width:100%; font:inherit; padding:.45rem .55rem; border:1px solid #cbd5e1; border-radius:8px; background:#fff; }
+  .filtros { display:grid; grid-template-columns:repeat(4, 1fr) auto; gap:.5rem; align-items:end; margin-top:.8rem; }
+  .filtros label { margin-top:0; }
+
+  .resumen { display:grid; grid-template-columns:repeat(5, 1fr); gap:.6rem; margin-bottom:1rem; }
+  .dato { background:#fff; border:1px solid var(--borde); border-radius:10px; padding:.6rem .8rem; }
+  .dato b { display:block; font-size:1.4rem; line-height:1.15; font-variant-numeric:tabular-nums; } .dato span { font-size:.8rem; color:var(--gris); }
+
+  .tabla-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.88rem; }
+  th, td { padding:.45rem .5rem; border-bottom:1px solid var(--borde); text-align:left; vertical-align:top; }
+  th { font-size:.78rem; text-transform:uppercase; letter-spacing:.03em; color:#4b5563; background:#f9fafb; white-space:nowrap; }
+  th.ordenable { cursor:pointer; } th.ordenable::after { content:" ⇅"; color:#9ca3af; }
+  .num { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  tr.total td { font-weight:700; background:#f9fafb; }
+  tr.parcial td { color:#6b7280; }
+  .pill { display:inline-block; font-size:.7rem; font-weight:700; padding:.05rem .45rem; border-radius:999px; background:#e5e7eb; color:#374151; white-space:nowrap; }
+  .pill.alerta { background:#fee2e2; color:#991b1b; } .pill.info { background:#e0e7ff; color:#3730a3; } .pill.ok { background:#dcfce7; color:#14532d; }
+  a.movil { font-weight:700; color:var(--azul); text-decoration:none; }
+
+  /* Barras horizontales */
+  .barras { display:grid; grid-template-columns:7rem 1fr 4.5rem; gap:.35rem .6rem; align-items:center; font-size:.85rem; }
+  .barra { height:14px; background:#f3f4f6; border-radius:4px; overflow:hidden; }
+  .barra i { display:block; height:100%; background:#3b82f6; border-radius:4px; }
+  .barra i.pesada { background:#f59e0b; }
+
+  .dos { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  .grafico svg { width:100%; height:auto; display:block; }
+  .nota { background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:.55rem .75rem; font-size:.84rem; margin-top:.6rem; }
+  .nota.alerta { background:var(--rojo-suave); border-color:#fecaca; }
+
+  .telefono { max-width:380px; margin:0 auto; border:1px solid var(--borde); border-radius:16px; padding:1rem; background:#fff; }
+  .calc { background:#f9fafb; border-radius:8px; padding:.5rem .7rem; font-size:.85rem; margin-top:.6rem; }
+
+  @media (max-width:900px) { .resumen { grid-template-columns:1fr 1fr; } .dos { grid-template-columns:1fr; } .filtros { grid-template-columns:1fr 1fr; } }
+  @media (max-width:520px) { body { padding:.5rem; } .filtros { grid-template-columns:1fr; } .barras { grid-template-columns:5.5rem 1fr 4rem; } }
+</style>
+</head>
+<body>
+
+<div class="aviso-mock">
+  <b>Mock para corregir</b>: datos de ejemplo (inventados, pero las cuentas son coherentes). Pantallas:
+  <div class="pestanas">
+    <button type="button" class="activa" data-vista="resumen">1. Resumen por unidad</button>
+    <button type="button" data-vista="detalle">2. Detalle de un móvil</button>
+    <button type="button" data-vista="cargar">3. Combustible en el parte</button>
+  </div>
+</div>
+
+<div class="contenedor">
+
+<!-- ================= 1. RESUMEN ================= -->
+<section class="vista activa" id="resumen">
+  <div class="card">
+    <div class="acciones" style="justify-content:space-between;">
+      <div><h1>Combustible por unidad</h1><div class="ayuda">Litros cargados, kilómetros recorridos y gasto por km. Período: 01/01/2026 al 14/11/2026.</div></div>
+      <div class="acciones"><a class="btn gris" href="#">Exportar a Excel</a><a class="btn gris" href="#">Imprimir</a></div>
+    </div>
+    <div class="filtros">
+      <div><label>Desde</label><input type="date" value="2026-01-01"></div>
+      <div><label>Hasta</label><input type="date" value="2026-11-14"></div>
+      <div><label>Tipo de unidad</label><select><option>Todas</option><option>Autobomba</option><option>Cisterna</option><option>Unidad de rescate</option><option>Unidad sanitaria</option><option>Liviana / camioneta</option></select></div>
+      <div><label>Combustible</label><select><option>Todos</option><option>Gas Oil</option><option>Nafta</option><option>GNC</option></select></div>
+      <div><button class="btn gris" type="button">Ver</button></div>
+    </div>
+  </div>
+
+  <div class="resumen">
+    <div class="dato"><b>1.442 L</b><span>cargados (38 cargas)</span></div>
+    <div class="dato"><b>$ 1.747.610</b><span>gastados</span></div>
+    <div class="dato"><b>9.325 km</b><span>recorridos</span></div>
+    <div class="dato"><b>$ 1.212 / L</b><span>precio promedio (sube 4% desde sep.)</span></div>
+    <div class="dato"><b>1</b><span>unidad con consumo fuera de lo normal</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Por unidad</h2>
+    <div class="tabla-scroll">
+    <table>
+      <tr>
+        <th class="ordenable">Móvil</th><th>Tipo</th>
+        <th class="num ordenable">Cargas</th><th class="num ordenable">Litros</th><th class="num ordenable">Gasto</th>
+        <th class="num ordenable">Km</th><th class="num ordenable">L / 100 km</th><th class="num ordenable">$ / km</th>
+        <th>Última carga</th><th></th>
+      </tr>
+      <tr><td><a class="movil" href="#" data-ir="detalle">62</a> VW 13180</td><td>Autobomba</td>
+        <td class="num">6</td><td class="num">233</td><td class="num">$ 281.110</td><td class="num">625</td><td class="num">29,3</td><td class="num">$ 355</td>
+        <td>13/11 · km 8.745</td><td><span class="pill info">Autobomba</span></td></tr>
+      <tr><td><a class="movil" href="#">9</a> Iveco DY-170</td><td>Autobomba</td>
+        <td class="num">4</td><td class="num">168</td><td class="num">$ 205.000</td><td class="num">410</td><td class="num">41,0</td><td class="num">$ 500</td>
+        <td>02/11 · km 31.204</td><td><span class="pill info">Autobomba</span></td></tr>
+      <tr><td><a class="movil" href="#">12</a> MB Sprinter 515</td><td>Rescate</td>
+        <td class="num">5</td><td class="num">150</td><td class="num">$ 182.000</td><td class="num">980</td><td class="num">15,3</td><td class="num">$ 186</td>
+        <td>10/11 · km 54.870</td><td><span class="pill alerta">Último tramo +62%</span></td></tr>
+      <tr><td><a class="movil" href="#">4</a> Ford Transit</td><td>Sanitaria</td>
+        <td class="num">7</td><td class="num">246</td><td class="num">$ 296.000</td><td class="num">2.140</td><td class="num">11,5</td><td class="num">$ 138</td>
+        <td>12/11 · km 6.587</td><td></td></tr>
+      <tr><td><a class="movil" href="#">6</a> Ford Transit</td><td>Sanitaria</td>
+        <td class="num">6</td><td class="num">220</td><td class="num">$ 266.200</td><td class="num">1.850</td><td class="num">11,9</td><td class="num">$ 144</td>
+        <td>14/11 · km 9.773</td><td></td></tr>
+      <tr><td><a class="movil" href="#">21</a> Toyota Hilux</td><td>Liviana</td>
+        <td class="num">9</td><td class="num">365</td><td class="num">$ 445.300</td><td class="num">3.320</td><td class="num">11,0</td><td class="num">$ 134</td>
+        <td>11/11 · km 88.012</td><td></td></tr>
+      <tr><td><a class="movil" href="#">17</a> Alfa Romeo</td><td>Cisterna</td>
+        <td class="num">1</td><td class="num">60</td><td class="num">$ 72.000</td><td class="num">—</td><td class="num">—</td><td class="num">—</td>
+        <td>30/10 · km 12.300</td><td><span class="pill">Faltan datos</span></td></tr>
+      <tr class="total"><td colspan="2">Total</td><td class="num">38</td><td class="num">1.442</td><td class="num">$ 1.747.610</td><td class="num">9.325</td><td class="num">—</td><td class="num">—</td><td colspan="2"></td></tr>
+    </table>
+    </div>
+    <p class="ayuda" style="margin-bottom:0;">
+      <b>Cómo se calcula:</b> el consumo (L/100 km y $/km) se mide entre cargas con <b>tanque lleno</b>: los litros que entran al llenar son los que se gastaron desde el llenado anterior.
+      La primera carga del período no cuenta para el consumo (es el punto de partida), pero sí para el gasto. Con una sola carga no se puede calcular.
+      No se promedian los consumos de cada tramo: se divide el total de litros por el total de km.
+    </p>
+  </div>
+
+  <div class="dos">
+    <div class="card">
+      <h2>Consumo por unidad (L / 100 km)</h2>
+      <div class="barras">
+        <span>9 Iveco</span><div class="barra"><i class="pesada" style="width:100%"></i></div><span class="num">41,0</span>
+        <span>62 VW</span><div class="barra"><i class="pesada" style="width:71%"></i></div><span class="num">29,3</span>
+        <span>12 Sprinter</span><div class="barra"><i style="width:37%"></i></div><span class="num">15,3</span>
+        <span>6 Transit</span><div class="barra"><i style="width:29%"></i></div><span class="num">11,9</span>
+        <span>4 Transit</span><div class="barra"><i style="width:28%"></i></div><span class="num">11,5</span>
+        <span>21 Hilux</span><div class="barra"><i style="width:27%"></i></div><span class="num">11,0</span>
+      </div>
+      <p class="ayuda" style="margin-bottom:0;">En naranja, las autobombas: la bomba funciona con el motor del camión parado, así que gastan combustible sin sumar km. Compararlas con una camioneta no tiene sentido; conviene compararlas con ellas mismas mes a mes.</p>
+    </div>
+    <div class="card">
+      <h2>Gasto por mes</h2>
+      <svg viewBox="0 0 320 150" role="img" aria-label="Gasto por mes de julio a noviembre">
+        <line x1="30" y1="120" x2="315" y2="120" stroke="#d1d5db"/>
+        <g fill="#3b82f6">
+          <rect x="45"  y="62" width="34" height="58" rx="3"/>
+          <rect x="100" y="48" width="34" height="72" rx="3"/>
+          <rect x="155" y="40" width="34" height="80" rx="3"/>
+          <rect x="210" y="30" width="34" height="90" rx="3"/>
+          <rect x="265" y="70" width="34" height="50" rx="3" fill="#93c5fd"/>
+        </g>
+        <g font-size="10" fill="#6b7280" text-anchor="middle">
+          <text x="62" y="134">Jul</text><text x="117" y="134">Ago</text><text x="172" y="134">Sep</text><text x="227" y="134">Oct</text><text x="282" y="134">Nov*</text>
+        </g>
+        <g font-size="9.5" fill="#374151" text-anchor="middle">
+          <text x="62" y="57">$ 232 mil</text><text x="117" y="43">$ 288 mil</text><text x="172" y="35">$ 320 mil</text><text x="227" y="25">$ 360 mil</text><text x="282" y="65">$ 200 mil</text>
+        </g>
+      </svg>
+      <p class="ayuda" style="margin-bottom:0;">* Mes en curso.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 2. DETALLE ================= -->
+<section class="vista" id="detalle">
+  <div class="card">
+    <div class="acciones" style="justify-content:space-between;">
+      <div>
+        <div class="ayuda">Autobomba · Gas Oil · tanque de 200 L</div>
+        <h1>Móvil 62 — Volkswagen 13180/35</h1>
+      </div>
+      <div class="acciones"><a class="btn gris" href="#" data-ir="resumen">Volver</a></div>
+    </div>
+  </div>
+
+  <div class="resumen">
+    <div class="dato"><b>29,3</b><span>L / 100 km en el período</span></div>
+    <div class="dato"><b>$ 355</b><span>por km</span></div>
+    <div class="dato"><b>625 km</b><span>recorridos (8.120 → 8.745)</span></div>
+    <div class="dato"><b>233 L</b><span>cargados en 6 cargas</span></div>
+    <div class="dato"><b>$ 281.110</b><span>gastados</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Cargas y consumo entre cargas</h2>
+    <div class="tabla-scroll">
+    <table>
+      <tr>
+        <th>Fecha</th><th class="num">Km</th><th class="num">Km desde la anterior</th><th class="num">Litros</th><th>Tanque</th>
+        <th class="num">Importe</th><th class="num">$ / L</th><th class="num">L / 100 km</th><th class="num">$ / km</th><th>Parte / pago / notas</th>
+      </tr>
+      <tr><td>05/09</td><td class="num">8.120</td><td class="num">—</td><td class="num">50</td><td>Lleno</td>
+        <td class="num">$ 59.500</td><td class="num">1.190</td><td class="num">—</td><td class="num">—</td><td><a href="#">Parte 52</a> · Cta. cte. · <span class="ayuda">punto de partida</span></td></tr>
+      <tr><td>22/09</td><td class="num">8.265</td><td class="num">145</td><td class="num">38</td><td>Lleno</td>
+        <td class="num">$ 45.220</td><td class="num">1.190</td><td class="num">26,2</td><td class="num">$ 312</td><td><a href="#">Parte 64</a> · Tarjeta · Org. funcional</td></tr>
+      <tr class="parcial"><td>10/10</td><td class="num">8.402</td><td class="num">137</td><td class="num">30</td><td>Parcial</td>
+        <td class="num">$ 36.000</td><td class="num">1.200</td><td class="num" colspan="2" style="text-align:center;">se calcula en el próximo llenado</td><td><a href="#">Parte 71</a> · Cta. cte. · Incendio</td></tr>
+      <tr><td>18/10</td><td class="num">8.488</td><td class="num">86</td><td class="num">45</td><td>Lleno</td>
+        <td class="num">$ 54.000</td><td class="num">1.200</td><td class="num"><b>33,6</b></td><td class="num">$ 404</td>
+        <td><a href="#">Parte 77</a> · Cta. cte. · 223 km y 75 L desde el 22/09 · <span class="pill info">2 incendios en el tramo</span></td></tr>
+      <tr><td>02/11</td><td class="num">8.640</td><td class="num">152</td><td class="num">41</td><td>Lleno</td>
+        <td class="num">$ 50.430</td><td class="num">1.230</td><td class="num">27,0</td><td class="num">$ 332</td><td><a href="#">Parte 88</a> · Tarjeta · Mant. / tareas generales</td></tr>
+      <tr><td>13/11</td><td class="num">8.745</td><td class="num">105</td><td class="num">29</td><td>Lleno</td>
+        <td class="num">$ 35.960</td><td class="num">1.240</td><td class="num">27,6</td><td class="num">$ 342</td><td><a href="#">Parte 9</a> · Cta. cte. · Accidente</td></tr>
+      <tr class="total"><td colspan="2">Período</td><td class="num">625</td><td class="num">233</td><td></td>
+        <td class="num">$ 281.110</td><td class="num">1.206</td><td class="num">29,3</td><td class="num">$ 355</td><td class="ayuda">Consumo: 183 L y $ 221.610 desde el primer llenado</td></tr>
+    </table>
+    </div>
+  </div>
+
+  <div class="dos">
+    <div class="card grafico">
+      <h2>Consumo de cada tramo (L / 100 km)</h2>
+      <svg viewBox="0 0 320 160" role="img" aria-label="Consumo por tramo: 26,2; 33,6; 27,0; 27,6">
+        <line x1="30" y1="130" x2="310" y2="130" stroke="#d1d5db"/>
+        <line x1="30" y1="10"  x2="30"  y2="130" stroke="#d1d5db"/>
+        <g font-size="9" fill="#6b7280" text-anchor="end"><text x="26" y="133">20</text><text x="26" y="93">25</text><text x="26" y="53">30</text><text x="26" y="13">35</text></g>
+        <line x1="30" y1="71.6" x2="310" y2="71.6" stroke="#9ca3af" stroke-dasharray="4 3"/>
+        <text x="308" y="67" font-size="9" fill="#6b7280" text-anchor="end">mediana 27,3</text>
+        <polyline fill="none" stroke="#2563eb" stroke-width="2.5" points="60,80.4 135,21.2 210,74 285,69.2"/>
+        <g fill="#2563eb"><circle cx="60" cy="80.4" r="4"/><circle cx="135" cy="21.2" r="5" fill="#dc2626"/><circle cx="210" cy="74" r="4"/><circle cx="285" cy="69.2" r="4"/></g>
+        <g font-size="9" fill="#374151" text-anchor="middle"><text x="60" y="146">22/09</text><text x="135" y="146">18/10</text><text x="210" y="146">02/11</text><text x="285" y="146">13/11</text></g>
+        <text x="135" y="14" font-size="9" fill="#dc2626" text-anchor="middle">33,6</text>
+      </svg>
+      <div class="nota">El tramo del 18/10 está 23% arriba de la mediana del móvil: en ese tramo hubo 2 incendios (se supone uso de bomba). Se marca en rojo cuando un tramo supera en más de 30% la mediana del móvil <b>y</b> no hubo incendios en el tramo que lo expliquen.</div>
+    </div>
+    <div class="card">
+      <h2>Controles</h2>
+      <div class="nota">✔ Ninguna carga supera la capacidad del tanque (200 L).</div>
+      <div class="nota">✔ Los km de cada carga son mayores que los de la anterior.</div>
+      <div class="nota alerta">⚠ Parte 85/2026 (cargado antes de este cambio) marcó «carga de combustible» pero no tiene litros ni importe: no entra en los cálculos. <a href="#">Corregir el parte</a></div>
+      <div class="nota">ℹ 1 carga de 6 no llenó el tanque (10/10): su consumo se sumó al tramo siguiente.</div>
+      <div class="nota">ℹ Precio por litro: subió de $ 1.190 a $ 1.240 (+4%) desde septiembre.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 3. CARGAR ================= -->
+<section class="vista" id="cargar">
+  <div class="telefono">
+    <div class="ayuda">Parte 9/2026 · Completar / corregir datos · sección «Salida de la unidad»</div>
+    <h1>Unidad y combustible</h1>
+
+    <label>Unidad utilizada</label>
+    <select><option>62 — VW 13180/35 (Gas Oil)</option></select>
+
+    <label>Km de regreso (km actuales del móvil)</label>
+    <input value="8.745" inputmode="numeric">
+    <div class="ayuda">Último km anotado: 8.640 (parte 88, 02/11). Tiene que ser mayor. Es también el km de la carga.</div>
+
+    <label>Nivel de combustible al regresar</label>
+    <select><option>Lleno</option><option>3/4</option><option>1/2</option><option>1/4</option><option>Reserva</option></select>
+
+    <label style="font-weight:400;margin-top:.9rem;"><input type="checkbox" checked style="width:auto;"> <b>Se cargó combustible</b></label>
+
+    <div style="border-left:3px solid var(--azul);padding-left:.7rem;margin-top:.3rem;">
+      <label>Litros</label>
+      <input value="29" inputmode="decimal">
+
+      <label>Costo total ($)</label>
+      <input value="35.960" inputmode="decimal">
+
+      <label style="font-weight:400;"><input type="checkbox" checked style="width:auto;"> <b>Se llenó el tanque</b> (hasta que cortó el surtidor)</label>
+      <div class="ayuda">Si fue una carga parcial, destildalo: el consumo se calcula en el próximo llenado.</div>
+
+      <label>Forma de pago</label>
+      <select><option>Cuenta corriente</option><option>Tarjeta</option></select>
+
+      <div class="calc">
+        Precio: <b>$ 1.240 / L</b><br>
+        Desde el último llenado (02/11): <b>105 km</b> → <b>27,6 L / 100 km</b> · <b>$ 342 / km</b>
+      </div>
+    </div>
+
+    <label>Horas de uso de la bomba (opcional)</label>
+    <input placeholder="Ej.: 1,5" inputmode="decimal">
+    <div class="ayuda">Campo disponible para el futuro: hoy no se usa en los cálculos.</div>
+
+    <button class="btn" type="button" style="width:100%;margin-top:.8rem;">Guardar</button>
+    <p class="ayuda" style="text-align:center;">Con «Se cargó combustible» tildado, litros y costo son obligatorios para cerrar el parte.</p>
+  </div>
+</section>
+
+</div>
+
+<script>
+  function ir(vista) {
+    document.querySelectorAll(".vista").forEach(v => v.classList.toggle("activa", v.id === vista));
+    document.querySelectorAll(".pestanas button").forEach(b => b.classList.toggle("activa", b.dataset.vista === vista));
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll(".pestanas button").forEach(b => b.addEventListener("click", () => ir(b.dataset.vista)));
+  document.querySelectorAll("[data-ir]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); ir(el.dataset.ir); }));
+</script>
+</body>
+</html>

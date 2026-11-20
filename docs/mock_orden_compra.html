@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orden de compra (mock)</title>
+<style>
+  :root { --rojo:#c0392b; --fondo:#f3f4f6; --texto:#1f2937; --gris:#6b7280; --borde:#e5e7eb; --azul:#1d76b8; --verde:#15803d; }
+  body { font-family:system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background:var(--fondo); color:var(--texto); margin:0; padding:1rem; line-height:1.45; }
+  .card { background:#fff; max-width:860px; margin:0 auto 1rem auto; padding:1rem 1.25rem; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.08); border:1px solid var(--borde); }
+  .btn { display:inline-block; background:var(--rojo); color:#fff; border:0; padding:.55rem 1rem; border-radius:8px; font-weight:600; font-size:.92rem; cursor:pointer; text-decoration:none; font-family:inherit; }
+  .btn.gris { background:#e5e7eb; color:#111; } .btn.verde { background:var(--verde); }
+  .acciones { display:flex; gap:.5rem; flex-wrap:wrap; }
+  .ayuda { color:var(--gris); font-size:.85rem; }
+  .aviso-mock { max-width:860px; margin:0 auto 1rem auto; background:#fef9c3; border:1px dashed #ca8a04; border-radius:8px; padding:.6rem .9rem; font-size:.85rem; }
+  .aviso-mock select { font:inherit; padding:.2rem .4rem; }
+
+  /* Pasos del circuito */
+  .pasos { display:flex; margin:.8rem 0 .2rem 0; }
+  .paso { flex:1; text-align:center; font-size:.8rem; color:var(--gris); position:relative; padding-top:1.6rem; }
+  .paso::before { content:""; position:absolute; top:.45rem; left:50%; width:.9rem; height:.9rem; margin-left:-.45rem; border-radius:50%; background:#d1d5db; z-index:1; }
+  .paso::after { content:""; position:absolute; top:.83rem; left:-50%; width:100%; height:3px; background:#d1d5db; }
+  .paso:first-child::after { display:none; }
+  .paso.hecho { color:var(--texto); font-weight:600; } .paso.hecho::before, .paso.hecho::after { background:var(--verde); }
+
+  /* Hoja (igual que la orden de entrega) */
+  .hoja-orden { max-width:860px; margin:0 auto; background:#fff; padding:1.2rem 1.5rem; font-family:Arial, Helvetica, sans-serif; color:#111; position:relative; }
+  .membrete { display:flex; gap:1rem; align-items:center; border-bottom:3px solid var(--azul); padding-bottom:.5rem; }
+  .membrete img { width:84px; height:84px; object-fit:contain; } .membrete .cuartel { font-size:1.45rem; font-weight:800; line-height:1.1; }
+  .membrete .datos { font-size:.8rem; }
+  .fila-titulo { display:flex; gap:.8rem; align-items:stretch; margin:.8rem 0; flex-wrap:wrap; }
+  .fila-titulo .titulo { background:var(--azul); color:#fff; font-weight:800; font-size:1.4rem; padding:.4rem 1rem; border-radius:6px; flex:1; }
+  .fila-titulo .caja { border:1px solid #999; border-radius:6px; padding:.4rem .8rem; font-weight:700; display:flex; align-items:center; }
+  .fila-titulo .caja.estado { background:#f1f5f9; }
+  .marco { border:1px solid #999; border-radius:6px; padding:.6rem .8rem; margin-bottom:.7rem; font-size:.92rem; }
+  .marco h3 { margin:-.6rem -.8rem .5rem -.8rem; background:#dbeafe; padding:.25rem .8rem; font-size:.9rem; border-radius:6px 6px 0 0; }
+  .dos { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; }
+  .tres { display:grid; grid-template-columns:1fr 1fr 1fr; gap:.7rem; }
+  .cuatro { display:grid; grid-template-columns:repeat(4, 1fr); gap:.5rem; }
+  .datos-grilla { display:grid; grid-template-columns:auto 1fr; gap:.15rem .6rem; }
+  .datos-grilla dt { font-weight:700; } .datos-grilla dd { margin:0; }
+  .hoja-orden table { width:100%; border-collapse:collapse; font-size:.86rem; }
+  .hoja-orden th, .hoja-orden td { border:1px solid #bbb; padding:.3rem .4rem; text-align:left; vertical-align:top; }
+  .hoja-orden th { background:#f1f5f9; }
+  .num { text-align:right !important; white-space:nowrap; }
+  .total td { font-weight:800; background:#f8fafc; }
+  .no-comprado td { color:#9ca3af; } .no-comprado .desc { text-decoration:line-through; }
+  .nota-item { display:block; font-size:.75rem; color:#b45309; text-decoration:none; }
+  .etiqueta { display:inline-block; font-size:.75rem; font-weight:700; padding:.05rem .45rem; border-radius:999px; border:1px solid currentColor; }
+  .urgente { color:#b91c1c; }
+  .a-definir { color:#b45309; font-style:italic; }
+
+  /* Sellos del circuito */
+  .sello { border:2px solid var(--verde); border-radius:6px; padding:.4rem .5rem; font-size:.78rem; min-height:6.4rem; }
+  .sello h4 { margin:0 0 .2rem 0; font-size:.76rem; letter-spacing:.04em; color:var(--verde); }
+  .sello .quien { font-weight:700; font-size:.86rem; }
+  .sello .codigo { font-family:Consolas, monospace; font-size:.75rem; background:#f0fdf4; padding:0 .3rem; border-radius:4px; }
+  .sello.pendiente { border:2px dashed #9ca3af; color:#6b7280; }
+  .sello.pendiente h4 { color:#6b7280; }
+  .linea-firma { margin-top:1.6rem; border-top:1px solid #111; padding-top:.2rem; font-size:.75rem; }
+
+  .marca-agua { position:absolute; top:42%; left:0; right:0; text-align:center; font-size:5rem; font-weight:900; color:rgba(185,28,28,.12); transform:rotate(-18deg); pointer-events:none; }
+  .cerrada { background:#f0fdf4; border:1px solid var(--verde); color:#14532d; border-radius:6px; padding:.35rem .7rem; font-size:.85rem; margin-bottom:.7rem; }
+
+  /* Qué se ve en cada estado (lo maneja el selector del mock) */
+  .oculto { display:none !important; }
+  body:not([data-e="4"]) .col-real { display:none; }
+
+  @media (max-width:640px) {
+    body { padding:.5rem; }
+    .dos, .tres { grid-template-columns:1fr; } .cuatro { grid-template-columns:1fr 1fr; }
+    .hoja-orden { padding:.8rem; }
+    .membrete .cuartel { font-size:1.1rem; } .membrete img { width:60px; height:60px; }
+    .tabla-scroll { overflow-x:auto; }
+  }
+  @media print {
+    @page { size:A4; margin:10mm; }
+    body { background:#fff; padding:0; }
+    .solo-pantalla, .aviso-mock { display:none !important; }
+    .hoja-orden { padding:0; max-width:none; }
+    .fila-titulo .titulo, .marco h3, .hoja-orden th, .sello .codigo, .cerrada { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+</style>
+</head>
+<body data-e="4">
+
+<div class="aviso-mock">
+  <b>Mock para corregir</b>: los datos son de ejemplo y los botones no hacen nada (salvo Imprimir).
+  Ver la orden en el estado:
+  <select id="estado">
+    <option value="1">1. Pedida (sin comercio)</option>
+    <option value="2">2. Autorizada por el Jefe</option>
+    <option value="3">3. Gestionada por la guardia</option>
+    <option value="4" selected>4. Ejecutada (compra parcial, cerrada)</option>
+    <option value="0">Anulada / rechazada</option>
+  </select>
+</div>
+
+<!-- Barra de pantalla (no se imprime) -->
+<div class="solo-pantalla card">
+  <div class="acciones">
+    <button type="button" class="btn" onclick="window.print()">Descargar PDF / Imprimir</button>
+    <button type="button" class="btn verde" data-si="1">Autorizar (Jefe)</button>
+    <button type="button" class="btn gris" data-si="1">Rechazar (Jefe)</button>
+    <button type="button" class="btn verde" data-si="2">Gestionar (guardia)</button>
+    <button type="button" class="btn gris" data-si="2">Dividir por comercio</button>
+    <button type="button" class="btn verde" data-si="3">Registrar compra</button>
+    <button type="button" class="btn gris" data-si="1">Corregir</button>
+    <button type="button" class="btn gris" data-si="2 3">Anular</button>
+    <button type="button" class="btn gris" data-si="4">Corregir con motivo</button>
+    <button type="button" class="btn gris" data-si="4">Nueva orden con lo que faltó</button>
+    <a class="btn gris" href="#">Volver</a>
+  </div>
+  <div class="pasos">
+    <div class="paso" data-paso="1">Pedida</div>
+    <div class="paso" data-paso="2">Autorizada</div>
+    <div class="paso" data-paso="3">Gestionada</div>
+    <div class="paso" data-paso="4">Ejecutada</div>
+  </div>
+  <p class="ayuda" style="margin:.3rem 0 0 0;" id="ayuda-estado"></p>
+</div>
+
+<!-- Hoja imprimible -->
+<div class="hoja-orden">
+  <div class="marca-agua oculto" id="anulada">ANULADA</div>
+
+  <div class="membrete">
+    <img src="../partes/static/partes/escudo.jpg" alt="Escudo">
+    <div>
+      <div class="cuartel">Cuerpo de Bomberos Voluntarios de Villa María</div>
+      <div><b>Cte. Insp. Mayor B. V. Bautista Gianinetto</b></div>
+      <div class="datos">General Paz 358 - Villa María (Cba.) | (0353) 4533300 - 4533400 - 100</div>
+    </div>
+  </div>
+
+  <div class="fila-titulo">
+    <div class="titulo">ORDEN DE COMPRA</div>
+    <div class="caja">N° 00000017 / 2026</div>
+    <div class="caja">FECHA: 14/11/2026</div>
+    <div class="caja estado" id="caja-estado">EJECUTADA</div>
+  </div>
+
+  <div class="cerrada" id="aviso-cerrada">✔ Orden cerrada el 18/11/2026 al registrar la compra (solo se corrige con motivo). Los ítems que faltaron pasaron a la <b>OC 00000018/2026</b>.</div>
+
+  <div class="dos">
+    <div class="marco">
+      <h3>COMERCIO / PROVEEDOR</h3>
+      <div id="comercio-pendiente" class="a-definir">A definir por la guardia al gestionar la orden.</div>
+      <dl class="datos-grilla" style="margin:0;" id="comercio-definido">
+        <dt>Razón social:</dt><dd>Ferretería Industrial Ejemplo S.R.L.</dd>
+        <dt>CUIT:</dt><dd>30-12345678-9</dd>
+        <dt>Dirección:</dt><dd>Av. Ejemplo 1234, Villa María</dd>
+        <dt>Teléfono:</dt><dd>(0353) 400-0000</dd>
+        <dt>Rubro:</dt><dd>Ferretería / herramientas</dd>
+        <dt>Presupuesto N°:</dt><dd>0003-00001542 (válido hasta 21/11/2026)</dd>
+        <dt>Forma de pago:</dt><dd>Cuenta corriente</dd>
+      </dl>
+    </div>
+    <div class="marco">
+      <h3>DATOS DEL PEDIDO</h3>
+      <dl class="datos-grilla" style="margin:0;">
+        <dt>Destino:</dt><dd>Móvil 12 — Ford F-4000</dd>
+        <dt>Motivo:</dt><dd>Reposición de herramientas de rescate dañadas en la salida del parte 85/2026.</dd>
+        <dt>Prioridad:</dt><dd><span class="etiqueta urgente">URGENTE</span></dd>
+        <dt>Origen:</dt><dd>Parte 85/2026</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="marco">
+    <h3>ÍTEMS</h3>
+    <div class="tabla-scroll">
+    <table>
+      <tr>
+        <th style="width:1.8rem;">#</th>
+        <th>Descripción</th>
+        <th style="width:3.2rem;" class="num">Cant.</th>
+        <th style="width:3.8rem;">Unidad</th>
+        <th style="width:6.6rem;" class="num">P. unit. est.</th>
+        <th style="width:6.6rem;" class="num">Subtotal est.</th>
+        <th style="width:4.2rem;" class="num col-real">Compró</th>
+        <th style="width:6.6rem;" class="num col-real">P. unit. real</th>
+        <th style="width:6.6rem;" class="num col-real">Subtotal real</th>
+      </tr>
+      <tr><td>1</td><td class="desc">Barreta de demolición 1,5 m</td><td class="num">2</td><td>unidad</td>
+        <td class="num">$ 38.500,00</td><td class="num">$ 77.000,00</td>
+        <td class="num col-real">2</td><td class="num col-real">$ 37.900,00</td><td class="num col-real">$ 75.800,00</td></tr>
+      <tr class="no-comprado-si-ejecutada"><td>2</td><td><span class="desc">Hacha de bombero con mango de fibra</span>
+          <span class="nota-item col-real">No había stock → pasa a OC 18/2026</span></td><td class="num">1</td><td>unidad</td>
+        <td class="num">$ 62.000,00</td><td class="num">$ 62.000,00</td>
+        <td class="num col-real">0</td><td class="num col-real">—</td><td class="num col-real">—</td></tr>
+      <tr><td>3</td><td><span class="desc">Guantes de cuero para rescate (talle L)</span>
+          <span class="nota-item col-real">Compra parcial: falta 1 par → OC 18/2026</span></td><td class="num">4</td><td>par</td>
+        <td class="num">$ 14.900,00</td><td class="num">$ 59.600,00</td>
+        <td class="num col-real">3</td><td class="num col-real">$ 14.500,00</td><td class="num col-real">$ 43.500,00</td></tr>
+      <tr><td>4</td><td class="desc">Cinta de balizamiento reflectiva</td><td class="num">20</td><td>metro</td>
+        <td class="num">$ 450,00</td><td class="num">$ 9.000,00</td>
+        <td class="num col-real">20</td><td class="num col-real">$ 450,00</td><td class="num col-real">$ 9.000,00</td></tr>
+      <tr><td>5</td><td class="desc">Precintos plásticos 300 mm × 100 u.</td><td class="num">1</td><td>caja</td>
+        <td class="num">$ 7.800,00</td><td class="num">$ 7.800,00</td>
+        <td class="num col-real">1</td><td class="num col-real">$ 7.600,00</td><td class="num col-real">$ 7.600,00</td></tr>
+      <tr class="total">
+        <td colspan="5" class="num">TOTAL ESTIMADO</td><td class="num">$ 215.400,00</td>
+        <td colspan="2" class="num col-real">TOTAL REAL</td><td class="num col-real">$ 135.900,00</td>
+      </tr>
+    </table>
+    </div>
+    <p style="margin:.45rem 0 0 0;font-size:.85rem;"><b>Observaciones del pedido:</b> Si no hay hacha con mango de fibra, consultar antes de reemplazar por mango de madera.</p>
+  </div>
+
+  <div class="marco" id="marco-ejecucion">
+    <h3>COMPRA REALIZADA</h3>
+    <div class="tres">
+      <div><b>Fecha de compra:</b><br>18/11/2026</div>
+      <div><b>Factura / remito N°:</b><br>A 0003-00012877</div>
+      <div><b>Monto real:</b><br>$ 135.900,00<br><span class="ayuda">Compra parcial: 3 de 5 ítems completos.</span></div>
+    </div>
+    <p style="margin:.45rem 0 0 0;font-size:.85rem;"><b>Novedades:</b> Sin stock de hachas con mango de fibra; solo había 3 pares de guantes talle L. Factura adjunta en el sistema.</p>
+  </div>
+
+  <div class="cuatro">
+    <div class="sello" data-sello="1">
+      <h4>PIDIÓ</h4>
+      <div class="quien">Pérez, Juan Carlos</div>
+      <div>Legajo 1043 · Graduado</div>
+      <div>14/11/2026 21:12 hs</div>
+      <div>Firma: <span class="codigo">A3F91C07E2</span></div>
+    </div>
+    <div class="sello" data-sello="2">
+      <h4>AUTORIZÓ (JEFE)</h4>
+      <div class="quien">Fernández, Raúl</div>
+      <div>Legajo 1001 · Comandante</div>
+      <div>15/11/2026 07:55 hs</div>
+      <div>Firma: <span class="codigo">C81A44B0D3</span></div>
+    </div>
+    <div class="sello" data-sello="3">
+      <h4>GESTIONÓ (GUARDIA)</h4>
+      <div class="quien">Gómez, María Laura</div>
+      <div>Legajo 1188 · Bombero</div>
+      <div>15/11/2026 08:40 hs</div>
+      <div>Firma: <span class="codigo">7B20DD4E91</span></div>
+    </div>
+    <div class="sello" data-sello="4">
+      <h4>EJECUTÓ (COMPRÓ)</h4>
+      <div class="quien">Rodríguez, Pablo</div>
+      <div>Legajo 1102 · Suboficial Principal</div>
+      <div>18/11/2026 11:05 hs</div>
+      <div>Firma: <span class="codigo">E5C6018FA4</span></div>
+    </div>
+  </div>
+
+  <div class="dos" style="margin-top:.7rem;">
+    <div class="marco" style="margin-bottom:0;">Recibí conforme lo detallado como comprado (comercio):<div class="linea-firma">Firma y aclaración</div></div>
+    <div class="marco" style="margin-bottom:0;">Recibió la mercadería en el cuartel:<div class="linea-firma">Firma y aclaración</div></div>
+  </div>
+
+  <p style="text-align:center;font-size:.72rem;margin:.5rem 0 0 0;">
+    Documento interno. Una orden de compra corresponde a un solo comercio. Las firmas digitales se verifican en el sistema con su código.
+  </p>
+</div>
+
+<script>
+  // Solo para el mock: muestra la orden en cada estado.
+  const NOMBRES = {0: "ANULADA", 1: "PEDIDA", 2: "AUTORIZADA", 3: "GESTIONADA", 4: "EJECUTADA"};
+  const AYUDA = {
+    1: "Esperando la autorización del Jefe (si la pide el Jefe, queda autorizada sola). La ven Jefe, Graduados y Estadística; la guardia todavía no.",
+    2: "Autorizada: ya la ve la guardia, que define el comercio y el presupuesto. Si los ítems van a distintos comercios, «Dividir por comercio» arma una orden por cada uno.",
+    3: "Gestionada: lista para comprar. Quien tiene el permiso de compras registra qué se compró de cada ítem.",
+    4: "Ejecutada y cerrada. Guardia, Jefe o Graduado pueden corregirla con motivo (queda firmado el antes y el después). Lo que no se compró se pasa a una orden nueva, que vuelve a autorización.",
+    0: "Anulada (o rechazada por el Jefe) con motivo. Queda registrada, pero no sigue el circuito.",
+  };
+  const select = document.getElementById("estado");
+  function mostrar() {
+    const e = Number(select.value);
+    document.body.dataset.e = e;
+    document.getElementById("caja-estado").textContent = NOMBRES[e];
+    document.getElementById("ayuda-estado").textContent = "Cada paso se firma con la contraseña y queda sellado. " + AYUDA[e];
+    document.getElementById("anulada").classList.toggle("oculto", e !== 0);
+    document.getElementById("aviso-cerrada").classList.toggle("oculto", e !== 4);
+    document.getElementById("marco-ejecucion").classList.toggle("oculto", e !== 4);
+    const conComercio = e >= 3;
+    document.getElementById("comercio-pendiente").classList.toggle("oculto", conComercio);
+    document.getElementById("comercio-definido").classList.toggle("oculto", !conComercio);
+    document.querySelectorAll(".no-comprado-si-ejecutada").forEach(f => f.classList.toggle("no-comprado", e === 4));
+    document.querySelectorAll("[data-paso]").forEach(p => p.classList.toggle("hecho", e === 0 ? p.dataset.paso === "1" : Number(p.dataset.paso) <= e));
+    document.querySelectorAll("[data-si]").forEach(b => b.classList.toggle("oculto", !b.dataset.si.split(" ").includes(String(e))));
+    document.querySelectorAll("[data-sello]").forEach(s => {
+      if (!s.dataset.original) s.dataset.original = s.innerHTML;
+      const n = Number(s.dataset.sello), hecho = e === 0 ? n === 1 : n <= e;
+      s.classList.toggle("pendiente", !hecho);
+      const titulo = s.dataset.original.match(/<h4>(.*?)<\/h4>/)[1];
+      s.innerHTML = hecho ? s.dataset.original
+        : `<h4>${titulo}</h4>${e === 0 ? "No corresponde (anulada)" : "Pendiente"}<div class="linea-firma">&nbsp;</div>`;
+    });
+  }
+  select.addEventListener("change", mostrar);
+  mostrar();
+</script>
+</body>
+</html>

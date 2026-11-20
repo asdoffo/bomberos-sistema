@@ -1,0 +1,199 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}{% if propio %}Mi perfil{% else %}{{ i.apellido }}, {{ i.nombre }}{% endif %} — Bomberos Villa María{% endblock %}
+
+{% block estilos %}
+  /* Perfil como en las redes sociales: portada, foto, nombre, cifras y pestañas. */
+  .perfil { padding:0; overflow:hidden; }
+  .portada { height:7.5rem; background:linear-gradient(120deg, var(--rojo), var(--rojo-oscuro) 60%, #1f2937); }
+  .perfil-cuerpo { padding:0 1.4rem 1.2rem 1.4rem; }
+  .perfil-arriba { display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; flex-wrap:wrap; margin-top:-3.2rem; }
+  .avatar { width:7rem; height:7rem; border-radius:50%; border:4px solid #fff; background:#e5e7eb; object-fit:cover;
+            display:flex; align-items:center; justify-content:center; font-size:2.4rem; font-weight:800; color:var(--gris); }
+  .acciones-perfil { display:flex; gap:0.5rem; flex-wrap:wrap; padding-bottom:0.3rem; }
+  .nombre-perfil { margin:0.6rem 0 0 0; font-size:1.55rem; color:var(--texto); }
+  .linea-perfil { color:var(--gris); }
+  .insignias { display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.6rem; }
+  .insignia { font-size:0.78rem; font-weight:700; padding:0.2rem 0.65rem; border-radius:999px; background:#f3f4f6; color:var(--texto); }
+  .insignia.merito { background:var(--rojo); color:#fff; }
+  .insignia.baja { background:#111; color:#fff; }
+  .cifras-perfil { display:flex; gap:1.6rem; flex-wrap:wrap; margin-top:1rem; }
+  .cifras-perfil div b { font-size:1.25rem; }
+  .cifras-perfil div span { color:var(--gris); font-size:0.88rem; margin-left:0.25rem; }
+  .anios { display:flex; gap:0.25rem; flex-wrap:wrap; margin-top:0.9rem; align-items:center; }
+  .anios span { color:var(--gris); font-size:0.85rem; margin-right:0.2rem; }
+  .anios a { padding:0.2rem 0.6rem; border-radius:999px; text-decoration:none; color:var(--gris); font-size:0.82rem; font-weight:600; border:1px solid var(--borde); }
+  .anios a.activo { background:var(--texto); border-color:var(--texto); color:#fff; }
+  .pestanas-perfil { display:flex; border-top:1px solid var(--borde); overflow-x:auto; }
+  .pestanas-perfil a { flex:1; text-align:center; padding:0.8rem 0.6rem; text-decoration:none; color:var(--gris); font-weight:600;
+                       border-bottom:3px solid transparent; white-space:nowrap; }
+  .pestanas-perfil a.activo { color:var(--rojo); border-bottom-color:var(--rojo); }
+  .muro { list-style:none; margin:0; padding:0; }
+  .muro li { display:grid; grid-template-columns:5.5rem 1fr; gap:0.2rem 1rem; padding:0.85rem 0.2rem; border-bottom:1px solid var(--borde); }
+  .muro li:last-child { border-bottom:0; }
+  .muro .cuando { color:var(--gris); font-size:0.85rem; }
+  .muro .que { font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; }
+  .muro .que.siniestro { color:var(--rojo); } .muro .que.guardia { color:#b45309; } .muro .que.capacitacion { color:var(--azul); }
+  .muro .que.instructor { color:#7c3aed; } .muro .que.mantenimiento { color:var(--verde); }
+  .muro a { text-decoration:none; color:var(--texto); font-weight:600; }
+  .muro a:hover { text-decoration:underline; }
+  .barras td { padding:0.3rem 0.4rem; }
+  .barra-tipo { background:var(--rojo-suave); border-radius:4px; height:0.6rem; }
+  .barra-tipo span { display:block; background:var(--rojo); height:100%; border-radius:4px; }
+  table.tabla { width:100%; border-collapse:collapse; font-size:0.9rem; }
+  .tabla th, .tabla td { text-align:left; padding:0.4rem; border-bottom:1px solid #f0f0f0; }
+  .tabla th { font-size:0.75rem; color:var(--gris); text-transform:uppercase; }
+  .desplazable { overflow-x:auto; }
+  @media (max-width:640px) {
+    .perfil-cuerpo { padding:0 1rem 1rem 1rem; }
+    .avatar { width:5.6rem; height:5.6rem; font-size:2rem; }
+    .perfil-arriba { margin-top:-2.6rem; }
+    .muro li { grid-template-columns:1fr; }
+  }
+{% endblock %}
+
+{% block contenido %}
+{% if not propio and perms.partes.view_integrante %}<p style="margin:0 0 0.6rem 0;"><a href="{% url 'bomberos' %}">Volver a Bomberos</a></p>{% endif %}
+
+<div class="card perfil">
+  <div class="portada"></div>
+  <div class="perfil-cuerpo">
+    <div class="perfil-arriba">
+      {% if i.foto %}<img class="avatar" src="{{ i.foto.url }}" alt="Foto de {{ i.nombre }}">
+      {% else %}<div class="avatar" aria-hidden="true">{{ i.nombre|first }}{{ i.apellido|first }}</div>{% endif %}
+      <div class="acciones-perfil">
+        {% if perms.partes.change_integrante %}<a class="btn gris" href="{% url 'editar_bombero' i.pk %}">Editar ficha</a>{% endif %}
+        {% if propio %}<a class="btn gris" href="{% url 'password_change' %}">Cambiar contraseña</a>{% endif %}
+      </div>
+    </div>
+    <h1 class="nombre-perfil">{{ i.nombre }} {{ i.apellido }}</h1>
+    <div class="linea-perfil">{{ i.rango }}{% if i.cargo %} · {{ i.cargo }}{% endif %} · Legajo {{ i.legajo }}</div>
+    <div class="insignias">
+      {% if merito %}<span class="insignia merito">N° {{ merito|stringformat:"03d" }}</span>{% endif %}
+      {% if dado_de_baja %}<span class="insignia baja">Dado de baja</span>{% else %}<span class="insignia">{{ i.estado }}</span>{% endif %}
+      <span class="insignia">{{ i.rango.get_escalafon_display }}</span>
+      {% if i.grupo_guardia %}<span class="insignia">{{ i.get_grupo_guardia_display }}</span>{% endif %}
+      {% if i.rango.es_cabeza %}<span class="insignia">Cabeza del cuerpo</span>{% endif %}
+      {% if i.es_bombero_forestal %}<span class="insignia">Bombero forestal</span>{% endif %}
+      {% if i.instructor_cuartel or i.instructor_regional or i.instructor_federacion %}<span class="insignia">Instructor</span>{% endif %}
+    </div>
+    <div class="cifras-perfil">
+      <div><b>{{ resumen.salidas }}</b><span>siniestros</span></div>
+      <div><b>{{ resumen.guardias }}</b><span>como guardia</span></div>
+      <div><b>{{ resumen.capacitaciones }}</b><span>capacitaciones ({{ resumen.horas_capacitacion|floatformat:"-1" }} h)</span></div>
+      <div><b>{{ resumen.mantenimientos }}</b><span>mantenimientos ({{ resumen.horas_mantenimiento|floatformat:"-1" }} h)</span></div>
+    </div>
+    {% if anios|length > 1 %}
+    <nav class="anios" aria-label="Año"><span>Año</span>
+      {% for a in anios %}<a href="?anio={{ a }}&pestana={{ pestana }}" class="{% if a == anio %}activo{% endif %}">{{ a }}</a>{% endfor %}
+    </nav>
+    {% endif %}
+    {% if periodo.cerrado %}<p class="ayuda" style="margin-bottom:0;">Tomo {{ anio }} cerrado: así quedó guardado.</p>{% endif %}
+  </div>
+  <nav class="pestanas-perfil" aria-label="Secciones del perfil">
+    {% for clave, nombre in pestanas %}<a href="?anio={{ anio }}&pestana={{ clave }}" class="{% if clave == pestana %}activo{% endif %}">{{ nombre }}</a>{% endfor %}
+  </nav>
+</div>
+
+{% if pestana == "actividad" %}
+  {% if por_tipo %}
+  <div class="card">
+    <h2>Siniestros {{ anio }} por tipo</h2>
+    <table class="tabla barras">
+      {% for tipo, total in por_tipo %}
+      <tr><td style="width:45%;">{{ tipo }}</td><td style="width:3rem;">{{ total }}</td>
+        <td><div class="barra-tipo"><span style="width:{% widthratio total por_tipo.0.1 100 %}%;"></span></div></td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+  <div class="card">
+    <h2>Actividad {{ anio }}</h2>
+    {% if muro %}
+    <ul class="muro">
+      {% for item in muro %}
+      <li>
+        <span class="cuando">{{ item.fecha|date:"d/m/Y" }}</span>
+        <span><span class="que {{ item.tipo|slugify }}">{{ item.tipo }}</span><br>
+          <a href="{{ item.url }}">{{ item.titulo }}</a><br><span class="ayuda">{{ item.detalle }}</span></span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="vacio">Sin actividad registrada en {{ anio }}.</p>{% endif %}
+  </div>
+
+{% elif pestana == "datos" %}
+  {% for titulo, filas in secciones %}
+  <div class="card">
+    <h2>{{ titulo }}</h2>
+    <div class="datos">
+      {% for etiqueta, valor, url in filas %}
+        <div><span>{{ etiqueta }}</span>{% if url %}<a href="{{ url }}" target="_blank" rel="noopener">{{ valor }}</a>{% else %}{{ valor }}{% endif %}</div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+
+{% elif pestana == "familia" %}
+  <div class="card">
+    <h2>Familiares</h2>
+    {% if familiares %}
+    <div class="desplazable"><table class="tabla">
+      <tr><th>Vínculo</th><th>Apellido y nombre</th><th>DNI</th><th>Nacimiento</th><th>Vive</th><th>Observaciones</th></tr>
+      {% for f in familiares %}
+      <tr><td>{{ f.vinculo }}</td><td>{{ f.apellido }}, {{ f.nombre }}</td><td>{{ f.dni|default:"—" }}</td>
+        <td>{{ f.fecha_nacimiento|date:"d/m/Y"|default:"—" }}</td><td>{{ f.vive|yesno:"Sí,No" }}</td><td>{{ f.observaciones }}</td></tr>
+      {% endfor %}
+    </table></div>
+    {% else %}<p class="vacio">Sin familiares cargados.</p>{% endif %}
+  </div>
+
+{% else %}
+  {% for f in firmas_baja %}
+  <div class="card">
+    <div class="sello" style="margin-top:0;">
+      <span class="marca-sello">BAJA</span>
+      <span>Dado de baja el {{ f.fecha|date:"d/m/Y" }} por <b>{{ f.firmante }}</b>.<br>
+        Motivo: {{ f.datos.motivo }} · Sello <code>{{ f.codigo }}</code></span>
+    </div>
+  </div>
+  {% endfor %}
+  <div class="card">
+    <h2>Números de mérito</h2>
+    {% if historial_merito %}
+    <table class="tabla">
+      <tr><th>Año</th><th>N°</th><th>Rango ese año</th></tr>
+      {% for h in historial_merito %}<tr><td>{{ h.anio }}</td><td>{{ h.numero_merito|stringformat:"03d" }}</td><td>{{ h.rango }}</td></tr>{% endfor %}
+    </table>
+    {% else %}<p class="vacio">Sin números de mérito cargados.</p>{% endif %}
+  </div>
+  <div class="card">
+    <h2>Historial en el cuerpo</h2>
+    {% if historial %}
+    <div class="desplazable"><table class="tabla">
+      <tr><th>Desde</th><th>Cuerpo</th><th>Estado</th><th>Formación</th><th>Motivo de baja</th><th>Fin de licencia</th></tr>
+      {% for h in historial %}
+      <tr><td>{{ h.fecha_desde|date:"d/m/Y" }}</td><td>{{ h.cuerpo }}</td><td>{{ h.estado|default:"—" }}</td>
+        <td>{{ h.formacion }}</td><td>{{ h.motivo_baja }}</td><td>{{ h.fin_licencia|date:"d/m/Y" }}</td></tr>
+      {% endfor %}
+    </table></div>
+    {% else %}<p class="vacio">Sin registros de historial.</p>{% endif %}
+  </div>
+  {% if perms.partes.change_integrante and not dado_de_baja and not propio %}
+  <div class="card">
+    <h2>Dar de baja</h2>
+    <details class="firmar" style="margin-top:0;">
+      <summary>Dar de baja a {{ i.nombre }} {{ i.apellido }}</summary>
+      <p class="ayuda" style="margin:0.4rem 0 0 0;">Pasa a estado "Baja", se anota en su historial y libera su N° de este año.
+        La baja queda firmada a tu nombre y no se puede borrar. Confirmá con tu contraseña.</p>
+      <form method="post" action="{% url 'dar_de_baja' i.pk %}" class="fila-firma">
+        {% csrf_token %}
+        <input type="text" name="motivo" required maxlength="150" placeholder="Motivo de la baja" aria-label="Motivo de la baja">
+        <input type="password" name="clave" required autocomplete="current-password" placeholder="Tu contraseña" aria-label="Tu contraseña">
+        <button type="submit" class="btn">Dar de baja y firmar</button>
+      </form>
+    </details>
+  </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

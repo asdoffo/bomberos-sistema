@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Citación (mock)</title>
+<style>
+  :root { --rojo:#c0392b; --fondo:#f3f4f6; --texto:#1f2937; --gris:#6b7280; --borde:#e5e7eb; --azul:#1d76b8; --verde:#15803d; --ambar:#b45309; }
+  body { font-family:system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background:var(--fondo); color:var(--texto); margin:0; padding:1rem; line-height:1.45; }
+  .card { background:#fff; max-width:860px; margin:0 auto 1rem auto; padding:1rem 1.25rem; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.08); border:1px solid var(--borde); }
+  .card h2 { margin:0 0 .5rem 0; font-size:1.05rem; color:var(--rojo); }
+  .btn { display:inline-block; background:var(--rojo); color:#fff; border:0; padding:.55rem 1rem; border-radius:8px; font-weight:600; font-size:.92rem; cursor:pointer; text-decoration:none; font-family:inherit; }
+  .btn.gris { background:#e5e7eb; color:#111; } .btn.verde { background:var(--verde); }
+  .acciones { display:flex; gap:.5rem; flex-wrap:wrap; }
+  .ayuda { color:var(--gris); font-size:.85rem; }
+  .aviso-mock { max-width:860px; margin:0 auto 1rem auto; background:#fef9c3; border:1px dashed #ca8a04; border-radius:8px; padding:.6rem .9rem; font-size:.85rem; }
+  .aviso-mock select { font:inherit; padding:.2rem .4rem; }
+  label { display:block; font-size:.85rem; font-weight:600; margin:.5rem 0 .2rem 0; }
+  textarea, select.campo { width:100%; box-sizing:border-box; font:inherit; padding:.45rem .55rem; border:1px solid #cbd5e1; border-radius:8px; }
+
+  /* Vista del bombero (celular) */
+  .telefono { max-width:380px; margin:0 auto; border:1px solid var(--borde); border-radius:14px; padding:.9rem; background:#fafafa; }
+  .telefono .titulo-cit { font-weight:700; } .telefono .cuando { font-size:1.05rem; font-weight:700; color:var(--rojo); }
+  .pastilla { display:inline-block; font-size:.75rem; font-weight:700; padding:.1rem .5rem; border-radius:999px; background:#e5e7eb; }
+  .pastilla.verde { background:#dcfce7; color:#14532d; } .pastilla.ambar { background:#fef3c7; color:#78350f; } .pastilla.rojo { background:#fee2e2; color:#7f1d1d; }
+
+  /* Hoja (mismo estilo que la orden de entrega) */
+  .hoja { max-width:860px; margin:0 auto; background:#fff; padding:1.2rem 1.5rem; font-family:Arial, Helvetica, sans-serif; color:#111; position:relative; }
+  .membrete { display:flex; gap:1rem; align-items:center; border-bottom:3px solid var(--azul); padding-bottom:.5rem; }
+  .membrete img { width:84px; height:84px; object-fit:contain; } .membrete .cuartel { font-size:1.45rem; font-weight:800; line-height:1.1; }
+  .membrete .datos { font-size:.8rem; }
+  .fila-titulo { display:flex; gap:.8rem; align-items:stretch; margin:.8rem 0; flex-wrap:wrap; }
+  .fila-titulo .titulo { background:var(--azul); color:#fff; font-weight:800; font-size:1.4rem; padding:.4rem 1rem; border-radius:6px; flex:1; letter-spacing:.06em; }
+  .fila-titulo .caja { border:1px solid #999; border-radius:6px; padding:.4rem .8rem; font-weight:700; display:flex; align-items:center; }
+  .fila-titulo .caja.estado { background:#f1f5f9; }
+  .marco { border:1px solid #999; border-radius:6px; padding:.6rem .8rem; margin-bottom:.7rem; font-size:.95rem; }
+  .marco h3 { margin:-.6rem -.8rem .5rem -.8rem; background:#dbeafe; padding:.25rem .8rem; font-size:.9rem; border-radius:6px 6px 0 0; }
+  .dos { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; }
+  .tres { display:grid; grid-template-columns:1fr 1fr 1fr; gap:.5rem; }
+  .datos-grilla { display:grid; grid-template-columns:auto 1fr; gap:.2rem .7rem; margin:0; }
+  .datos-grilla dt { font-weight:700; } .datos-grilla dd { margin:0; }
+  .destacado { font-size:1.15rem; font-weight:800; }
+  .texto-legal { font-size:.88rem; margin:.5rem 0 0 0; }
+  .etiqueta { display:inline-block; font-size:.75rem; font-weight:700; padding:.05rem .45rem; border-radius:999px; border:1px solid currentColor; }
+  .obligatoria { color:#b91c1c; }
+  .resultado { font-weight:800; }
+  .resultado.ok { color:var(--verde); } .resultado.mal { color:#b91c1c; } .resultado.just { color:var(--ambar); }
+
+  .sello { border:2px solid var(--verde); border-radius:6px; padding:.4rem .5rem; font-size:.8rem; min-height:5.8rem; }
+  .sello h4 { margin:0 0 .2rem 0; font-size:.76rem; letter-spacing:.04em; color:var(--verde); }
+  .sello .quien { font-weight:700; font-size:.88rem; }
+  .sello .codigo { font-family:Consolas, monospace; font-size:.75rem; background:#f0fdf4; padding:0 .3rem; border-radius:4px; }
+  .sello.pendiente { border:2px dashed #9ca3af; color:#6b7280; } .sello.pendiente h4 { color:#6b7280; }
+  .linea-firma { margin-top:1.8rem; border-top:1px solid #111; padding-top:.2rem; font-size:.75rem; }
+  .linea { border-bottom:1px dotted #555; min-height:1.3rem; }
+
+  .corte { border:0; border-top:2px dashed #888; margin:1rem 0 .3rem 0; position:relative; }
+  .corte-texto { text-align:center; font-size:.7rem; color:#666; margin:-.2rem 0 .5rem 0; }
+  .marca-agua { position:absolute; top:35%; left:0; right:0; text-align:center; font-size:5rem; font-weight:900; color:rgba(185,28,28,.12); transform:rotate(-18deg); pointer-events:none; }
+  .oculto { display:none !important; }
+
+  @media (max-width:640px) {
+    body { padding:.5rem; }
+    .dos, .tres { grid-template-columns:1fr; }
+    .hoja { padding:.8rem; }
+    .membrete .cuartel { font-size:1.1rem; } .membrete img { width:60px; height:60px; }
+  }
+  @media print {
+    @page { size:A4; margin:10mm; }
+    body { background:#fff; padding:0; }
+    .solo-pantalla, .aviso-mock { display:none !important; }
+    .hoja { padding:0; max-width:none; }
+    .fila-titulo .titulo, .marco h3, .sello .codigo { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+</style>
+</head>
+<body>
+
+<div class="aviso-mock">
+  <b>Mock para corregir</b>: datos de ejemplo; los botones no hacen nada (salvo Imprimir).
+  Ver la citación en el estado:
+  <select id="estado">
+    <option value="1">1. Emitida (todavía no la vio)</option>
+    <option value="2">2. Notificada</option>
+    <option value="3">3. Confirmó que asiste</option>
+    <option value="4">4. Avisó que no puede (con reemplazo)</option>
+    <option value="5" selected>5. Cerrada: asistió</option>
+    <option value="0">Anulada</option>
+  </select>
+  &nbsp; <label style="display:inline;font-weight:400;"><input type="checkbox" id="confidencial"> Ver como confidencial</label>
+</div>
+
+<!-- ===== Vista del cuartel (pantalla) ===== -->
+<div class="solo-pantalla card">
+  <div class="acciones">
+    <button type="button" class="btn" onclick="window.print()">Descargar PDF / Imprimir</button>
+    <button type="button" class="btn gris" data-en="1 2 3 4">Enviar por WhatsApp</button>
+    <button type="button" class="btn gris" data-en="1">Registrar entrega en papel</button>
+    <button type="button" class="btn verde" data-en="2 3 4">Registrar asistencia</button>
+    <button type="button" class="btn gris" data-en="1 2 3 4">Corregir</button>
+    <button type="button" class="btn gris" data-en="5">Corregir con motivo</button>
+    <button type="button" class="btn gris" data-en="1 2 3 4">Anular</button>
+    <a class="btn gris" href="#">Volver</a>
+  </div>
+  <p class="ayuda" style="margin:.5rem 0 0 0;" id="ayuda-estado"></p>
+</div>
+
+<!-- ===== Vista del bombero (celular, pantalla) ===== -->
+<div class="solo-pantalla card" id="vista-bombero">
+  <h2>Así la ve el bombero (Mi perfil → Mis citaciones)</h2>
+  <div class="telefono">
+    <div class="titulo-cit">Citación N° 42/2026 <span class="pastilla" id="pastilla-bombero">Nueva</span></div>
+    <div class="cuando">Sábado 22/11/2026 · 08:00 hs</div>
+    <div>Cuartel Central (General Paz 358)</div>
+    <div style="margin:.4rem 0;"><b>Mantenimiento:</b> limpieza y control de equipos ERA del Móvil 12.</div>
+    <div class="ayuda">Llevar: uniforme de trabajo y guantes. Duración estimada: 3 h.<br>Citó: Of. Insp. Pérez, Juan Carlos.</div>
+
+    <div data-en="1" style="margin-top:.7rem;">
+      <button type="button" class="btn" style="width:100%;">Me notifico</button>
+      <p class="ayuda" style="margin:.3rem 0 0 0;">Al notificarte se registra la fecha y hora (con tu contraseña).</p>
+    </div>
+    <div data-en="2" style="margin-top:.7rem;">
+      <div class="acciones">
+        <button type="button" class="btn verde" style="flex:1;">Voy a asistir</button>
+        <button type="button" class="btn gris" style="flex:1;">No puedo asistir</button>
+      </div>
+      <label>Si no podés: motivo</label>
+      <textarea rows="2" placeholder="Ej.: turno en el trabajo"></textarea>
+      <label>Reemplazo que propongo (mismo cargo y grado)</label>
+      <select class="campo"><option>— Elegir —</option><option>Gómez, María Laura (1188) · Bombero</option><option>Luna, Esteban (1203) · Bombero</option></select>
+      <p class="ayuda" style="margin:.3rem 0 0 0;">Avisá con al menos 48 h de anticipación (fijado en esta citación). Si avisás después, igual se registra, marcado «fuera de plazo».</p>
+      <p class="ayuda" style="margin:.3rem 0 0 0;">Al reemplazante le llega su propia citación; queda reemplazado cuando la acepta.</p>
+    </div>
+    <div data-en="3" style="margin-top:.7rem;"><span class="pastilla verde">Confirmaste que asistís</span>
+      <p class="ayuda" style="margin:.3rem 0 0 0;">Si después no podés, todavía podés avisar (con 48 h de anticipación para que esté en plazo).</p></div>
+    <div data-en="4" style="margin-top:.7rem;"><span class="pastilla ambar">Avisaste que no podés · fuera de plazo</span><br>
+      <span class="pastilla verde" style="margin-top:.3rem;">Reemplazo: Gómez, M. L. aceptó (citación 43/2026)</span></div>
+    <div data-en="5" style="margin-top:.7rem;"><span class="pastilla verde">Asististe</span></div>
+    <div data-en="0" style="margin-top:.7rem;"><span class="pastilla rojo">Anulada por Jefatura</span></div>
+  </div>
+</div>
+
+<!-- ===== Hoja imprimible ===== -->
+<div class="hoja">
+  <div class="marca-agua oculto" id="anulada">ANULADA</div>
+
+  <div class="membrete">
+    <img src="../partes/static/partes/escudo.jpg" alt="Escudo">
+    <div>
+      <div class="cuartel">Cuerpo de Bomberos Voluntarios de Villa María</div>
+      <div><b>Cte. Insp. Mayor B. V. Bautista Gianinetto</b></div>
+      <div class="datos">General Paz 358 - Villa María (Cba.) | (0353) 4533300 - 4533400 - 100</div>
+    </div>
+  </div>
+
+  <div class="fila-titulo">
+    <div class="titulo">CITACIÓN</div>
+    <div class="caja">N° 00000042 / 2026</div>
+    <div class="caja">EMITIDA: 14/11/2026</div>
+    <div class="caja estado" id="caja-estado">CERRADA</div>
+  </div>
+  <div class="marco oculto" id="aviso-confidencial" style="border-color:#b91c1c;color:#7f1d1d;background:#fef2f2;font-weight:700;">
+    CONFIDENCIAL — Solo la ven el Jefe y el citado. No aparece en listados ni en la ficha para otros roles.
+  </div>
+
+  <div class="marco">
+    <h3>CITADO</h3>
+    <dl class="datos-grilla">
+      <dt>Sr./Sra.:</dt><dd class="destacado">Bombero RODRÍGUEZ, Pablo Andrés</dd>
+      <dt>Legajo / N° mérito:</dt><dd>1102 · N° 087/2026 · Grupo de guardia 2</dd>
+    </dl>
+  </div>
+
+  <div class="marco">
+    <h3>SÍRVASE PRESENTARSE</h3>
+    <dl class="datos-grilla">
+      <dt>Día y hora:</dt><dd class="destacado">Sábado 22/11/2026 a las 08:00 hs</dd>
+      <dt>Lugar:</dt><dd>Cuartel Central — General Paz 358</dd>
+      <dt>Para:</dt><dd><b>Mantenimiento</b> — Limpieza y control de equipos ERA del Móvil 12.</dd>
+      <dt>Duración estimada:</dt><dd>3 horas</dd>
+      <dt>Presentarse con:</dt><dd>Uniforme de trabajo y guantes.</dd>
+      <dt>Carácter:</dt><dd><span class="etiqueta obligatoria">OBLIGATORIA</span></dd>
+    </dl>
+    <p class="texto-legal">En caso de no poder asistir, deberá comunicarlo con la debida anticipación (al menos <b>48 horas antes</b>) y proponer el reemplazo correspondiente según su cargo y grado.</p>
+  </div>
+
+  <!-- Respuesta del citado -->
+  <div class="marco" id="marco-respuesta">
+    <h3>RESPUESTA DEL CITADO</h3>
+    <div data-en="3 5">Confirmó su asistencia el 15/11/2026 a las 10:22 hs.</div>
+    <div data-en="4">
+      <b>Señores de Jefatura:</b> comunico que no puedo asistir por: <i>turno en el trabajo (cambio de horario de último momento).</i><br>
+      Reemplazo propuesto: <b>Gómez, María Laura</b> (legajo 1188, Bombero) — <span class="resultado ok">aceptó</span> su citación N° 43/2026 el 20/11/2026 a las 19:12 hs.
+      <br>Avisó el 20/11/2026 a las 18:05 hs (38 h antes): <span class="etiqueta obligatoria">FUERA DE PLAZO</span> <span class="ayuda">(se pedían 48 h)</span>
+    </div>
+  </div>
+
+  <!-- Cumplimiento -->
+  <div class="marco" id="marco-cumplimiento">
+    <h3>CUMPLIMIENTO</h3>
+    <div class="dos">
+      <div>Resultado: <span class="resultado ok">ASISTIÓ</span><br><span class="ayuda">Otras opciones: No asistió · No asistió, justificado · Asistió el reemplazo</span></div>
+      <div>Registró: Pérez, Juan Carlos (1043)<br>22/11/2026 11:40 hs · Firma: <span class="codigo" style="font-family:Consolas,monospace;">D41E7A9C02</span></div>
+    </div>
+  </div>
+
+  <div class="tres">
+    <div class="sello" data-sello="1">
+      <h4>CITÓ</h4>
+      <div class="quien">Pérez, Juan Carlos</div>
+      <div>Legajo 1043 · Oficial Inspector</div>
+      <div>14/11/2026 21:30 hs</div>
+      <div>Firma: <span class="codigo">9AF2B61C3E</span></div>
+    </div>
+    <div class="sello" data-sello="2">
+      <h4>NOTIFICADO</h4>
+      <div class="quien">Rodríguez, Pablo Andrés</div>
+      <div>Legajo 1102 · por el sistema</div>
+      <div>15/11/2026 10:21 hs</div>
+      <div>Firma: <span class="codigo">50C7E8A1F4</span></div>
+    </div>
+    <div class="sello" data-sello="3">
+      <h4>RESPUESTA</h4>
+      <div class="quien" id="sello-respuesta">Asistirá</div>
+      <div>Rodríguez, Pablo Andrés</div>
+      <div id="sello-respuesta-fecha">15/11/2026 10:22 hs</div>
+      <div>Firma: <span class="codigo">B3D90E27A6</span></div>
+    </div>
+  </div>
+
+  <!-- Talón para el circuito en papel -->
+  <hr class="corte">
+  <div class="corte-texto">✂ Talón de notificación — queda en el cuartel firmado por el citado (solo si se entrega en papel)</div>
+  <div class="marco" style="margin-bottom:0;">
+    <div class="dos">
+      <div>
+        <b>Citación N° 42/2026</b> · Rodríguez, Pablo Andrés (1102)<br>
+        Para: Mantenimiento · 22/11/2026 08:00 hs<br><br>
+        <b>☐ Asistiré &nbsp; ☐ No puedo asistir por:</b>
+        <div class="linea"></div><div class="linea"></div>
+        Reemplazo propuesto: <div class="linea"></div>
+      </div>
+      <div>
+        Me notifiqué el día ____/____/______ a las ____:____ hs
+        <div class="linea-firma">Firma del citado</div>
+        <div class="linea-firma">Aclaración</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Solo para el mock: muestra la citación en cada estado.
+  const NOMBRES = {0: "ANULADA", 1: "EMITIDA", 2: "NOTIFICADA", 3: "CONFIRMADA", 4: "NO PUEDE ASISTIR", 5: "CERRADA"};
+  const PASTILLA = {0: "Anulada", 1: "Nueva", 2: "Notificada", 3: "Confirmada", 4: "Avisó que no puede", 5: "Cerrada"};
+  const AYUDA = {
+    1: "Emitida. El bombero la ve en Mis citaciones y se notifica con su contraseña. Si se la entregan en papel, el cuartel registra la entrega y guarda el talón firmado.",
+    2: "Notificado: falta que responda si asiste o no.",
+    3: "Confirmó que asiste. Después de la fecha, Jefe o Graduado registran si asistió.",
+    4: "Avisó que no puede (fuera de plazo: queda marcado) y propuso reemplazo. Al reemplazante se le generó su propia citación; al aceptarla, este queda reemplazado. Si el reemplazante la rechaza, se avisa a quien citó.",
+    5: "Cerrada con el resultado de la asistencia (una inasistencia sin justificar queda registrada en la ficha). Jefe o Graduado pueden corregirla con motivo.",
+    0: "Anulada con motivo. Al bombero le aparece como anulada.",
+  };
+  const select = document.getElementById("estado");
+  function mostrar() {
+    const e = Number(select.value);
+    document.getElementById("caja-estado").textContent = NOMBRES[e];
+    document.getElementById("pastilla-bombero").textContent = PASTILLA[e];
+    document.getElementById("ayuda-estado").textContent = "Cada paso queda sellado con fecha, hora y firma. " + AYUDA[e];
+    document.getElementById("anulada").classList.toggle("oculto", e !== 0);
+    document.getElementById("marco-respuesta").classList.toggle("oculto", ![3, 4, 5].includes(e));
+    document.getElementById("marco-cumplimiento").classList.toggle("oculto", e !== 5);
+    document.querySelectorAll("[data-en]").forEach(el => el.classList.toggle("oculto", !el.dataset.en.split(" ").includes(String(e))));
+    document.getElementById("sello-respuesta").textContent = e === 4 ? "No puede asistir" : "Asistirá";
+    document.getElementById("sello-respuesta-fecha").textContent = e === 4 ? "20/11/2026 18:05 hs" : "15/11/2026 10:22 hs";
+    document.querySelectorAll("[data-sello]").forEach(s => {
+      if (!s.dataset.original) s.dataset.original = s.innerHTML;
+      const n = Number(s.dataset.sello);
+      const hecho = n === 1 || (n === 2 && e >= 2) || (n === 3 && e >= 3);
+      const titulo = s.dataset.original.match(/<h4>(.*?)<\/h4>/)[1];
+      s.classList.toggle("pendiente", !hecho);
+      if (hecho) { s.innerHTML = s.dataset.original; }
+      else { s.innerHTML = `<h4>${titulo}</h4>${e === 0 ? "No corresponde (anulada)" : "Pendiente"}<div class="linea-firma">&nbsp;</div>`; }
+    });
+    // los ids dentro del sello 3 se recrean al restaurar el HTML original
+    const r = document.getElementById("sello-respuesta"), f = document.getElementById("sello-respuesta-fecha");
+    if (r) r.textContent = e === 4 ? "No puede asistir" : "Asistirá";
+    if (f) f.textContent = e === 4 ? "20/11/2026 18:05 hs" : "15/11/2026 10:22 hs";
+  }
+  select.addEventListener("change", mostrar);
+  document.getElementById("confidencial").addEventListener("change", e =>
+    document.getElementById("aviso-confidencial").classList.toggle("oculto", !e.target.checked));
+  mostrar();
+</script>
+</body>
+</html>

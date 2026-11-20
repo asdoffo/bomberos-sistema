@@ -1,0 +1,53 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}Capacitaciones {{ anio }} — Bomberos Villa María{% endblock %}
+
+{% block estilos %}
+  .cabecera { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.6rem; }
+  .herramientas { display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center; margin-top:1rem; }
+  .herramientas select { width:auto; margin-top:0 !important; }
+  .buscador { flex:1; min-width:200px; display:flex; gap:0.4rem; }
+  .buscador input { margin-top:0 !important; }
+  .lista a.fila { display:grid; grid-template-columns:auto 1fr auto; gap:0.2rem 0.9rem; align-items:center; padding:0.8rem 0.4rem; border-bottom:1px solid var(--borde); text-decoration:none; color:var(--texto); }
+  .lista a.fila:hover { background:#fafafa; }
+  .numero { font-weight:700; font-size:1.05rem; color:var(--rojo); min-width:4.5rem; }
+  .linea2 { color:var(--gris); font-size:0.83rem; }
+  .asistentes { color:var(--gris); font-size:0.85rem; white-space:nowrap; }
+  @media (max-width:640px) { .lista a.fila { grid-template-columns:auto 1fr; } .asistentes { grid-column:2; } }
+{% endblock %}
+
+{% block contenido %}
+<div class="card">
+  <div class="cabecera">
+    <h1 style="margin:0;">Capacitaciones</h1>
+    {% if perms.partes.add_capacitacion %}<a class="btn" href="{% url 'nueva_capacitacion' %}">Nueva capacitación</a>{% endif %}
+  </div>
+
+  <form class="herramientas" method="get">
+    <select name="anio" aria-label="Año" onchange="this.form.submit()">
+      {% for a in anios %}<option value="{{ a }}" {% if a == anio %}selected{% endif %}>{{ a }}</option>{% endfor %}
+    </select>
+    <span class="buscador">
+      <input type="search" name="q" value="{{ q }}" placeholder="Buscar por tema, lugar o instructor…" aria-label="Buscar">
+      <button class="btn gris" type="submit">Buscar</button>
+    </span>
+  </form>
+
+  <div class="lista" style="margin-top:0.6rem;">
+    {% for c in capacitaciones %}
+      <a class="fila" href="{% url 'detalle_capacitacion' c.pk %}">
+        <span class="numero">{{ c.numero_correlativo }}/{{ c.anio }}</span>
+        <span>
+          <b>{{ c.tema }}</b>{% if c.obligatoria %} · Obligatoria{% endif %}<br>
+          <span class="linea2">{{ c.fecha|date:"d/m/Y" }} · {{ c.get_modalidad_display }} · {{ c.get_sentido_display }} · {{ c.get_nivel_display }}{% if c.instructor %} · A cargo: {{ c.instructor }}{% endif %}</span>
+        </span>
+        <span class="asistentes">{{ c.cantidad }} asistente{{ c.cantidad|pluralize }}</span>
+      </a>
+    {% empty %}
+      <p class="vacio" style="text-align:center;padding:2rem 0;">
+        {% if q %}No hay capacitaciones que coincidan. <a href="?anio={{ anio }}">Ver todas</a>{% else %}No hay capacitaciones cargadas en {{ anio }}.{% endif %}
+      </p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

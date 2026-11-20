@@ -1,0 +1,338 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}Nuevo parte — Bomberos Villa María{% endblock %}
+
+{% block estilos %}
+  .autocompletar { position:relative; }
+  .sugerencias { list-style:none; margin:0.2rem 0 0; padding:0; border:1px solid var(--borde); border-radius:8px; overflow:hidden; background:#fff;
+                 position:absolute; left:0; right:0; z-index:10; box-shadow:0 6px 16px rgba(0,0,0,0.12); }
+  .sugerencias:empty { display:none; }
+  .sugerencias li { padding:0.55rem 0.7rem; border-bottom:1px solid #f3f4f6; cursor:pointer; }
+  .sugerencias li:last-child { border-bottom:0; }
+  .sugerencias li.activa, .sugerencias li:hover { background:#fef2f2; }
+  .sugerencias small { color:var(--gris); }
+  .dato-auto { font-size:1.05rem; font-weight:600; padding:0.45rem 0; }
+{% endblock %}
+
+{% block contenido %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  {{ form.momento_llamada }}{{ form.latitud }}{{ form.longitud }}
+  <div class="card">
+    <h1>Nuevo parte de siniestro</h1>
+    <div class="subtitulo">Control de salida N°, fecha y llamada Hs. se registran solos.
+      Personal de guardia: <b>{% if guardia %}{% if merito_guardia %}{{ merito_guardia|stringformat:"03d" }} — {% endif %}{{ guardia.apellido }}, {{ guardia.nombre }}{% else %}usuario {{ user.username }}{% endif %}</b>.</div>
+    {% if form.non_field_errors %}<div class="msg error" style="margin-top:0.8rem;">{{ form.non_field_errors }}</div>{% endif %}
+
+    <h2>Llamada</h2>
+    <div class="campos">
+      <div>
+        <label>Fecha y llamada Hs.</label>
+        <div class="dato-auto" id="vista-momento">—</div>
+      </div>
+      {% include "partes/_campo.html" with campo=form.toque_sirena %}
+      {% include "partes/_campo.html" with campo=form.medio_llamado %}
+      <div class="telefono" data-mostrar-si="medio_llamado=telefonico">
+        {% include "partes/_campo.html" with campo=form.caracteristica %}
+        {% include "partes/_campo.html" with campo=form.telefono_numero %}
+      </div>
+      {% include "partes/_campo.html" with campo=form.nombre_llamante %}
+    </div>
+
+    <h2>Tipo y ubicación del siniestro</h2>
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.tipo %}
+      {% include "partes/_campo.html" with campo=form.motivo %}
+      {% include "partes/_campo.html" with campo=form.es_esquina %}
+      <div class="campo-ancho{% if form.direccion_input.errors %} tiene-error{% endif %}">
+        <label for="{{ form.direccion_input.id_for_label }}" id="etiqueta-direccion">{{ form.direccion_input.label }} <span style="color:var(--rojo)">*</span></label>
+        <div class="autocompletar">
+          {{ form.direccion_input }}
+          <ul class="sugerencias" id="sugerencias" role="listbox" aria-label="Calles de Villa María"></ul>
+        </div>
+        <div class="ayuda" id="estado-direccion" aria-live="polite">{{ form.direccion_input.help_text }}</div>
+        {{ form.direccion_input.errors }}
+      </div>
+      <div data-mostrar-si="es_esquina">{% include "partes/_campo.html" with campo=form.esquina_input %}</div>
+      {% include "partes/_campo.html" with campo=form.barrio %}
+      {% include "partes/_campo.html" with campo=form.referencias %}
+      {% include "partes/_campo.html" with campo=form.observaciones %}
+    </div>
+  </div>
+
+  <div class="barra-guardar">
+    <button type="submit" class="btn">Crear parte</button>
+    <a class="btn gris" href="{% url 'menu' %}">Cancelar</a>
+  </div>
+</form>
+{{ calles|json_script:"calles-villa-maria" }}
+{{ historial_barrios|json_script:"historial-barrios" }}
+<datalist id="calles-dl">{% for c in calles %}<option value="{{ c }}">{% endfor %}</datalist>
+<datalist id="barrios-villa-maria">{% for b in barrios %}<option value="{{ b }}">{% endfor %}</datalist>
+{% endblock %}
+
+{% block scripts %}
+{{ tipos|json_script:"datos-tipos" }}
+<script>
+(function () {
+  function dos(n) { return String(n).padStart(2, "0"); }
+
+  // Fecha y hora de la llamada: el reloj de esta PC al abrir la pantalla.
+  // Si el formulario vuelve con errores, se conserva la hora original.
+  var momento = document.getElementById("{{ form.momento_llamada.id_for_label }}");
+  if (!momento.value) {
+    var d = new Date();
+    momento.value = d.getFullYear() + "-" + dos(d.getMonth() + 1) + "-" + dos(d.getDate()) +
+      "T" + dos(d.getHours()) + ":" + dos(d.getMinutes()) + ":" + dos(d.getSeconds());
+  }
+  var m = momento.value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  if (m) document.getElementById("vista-momento").textContent = m[3] + "/" + m[2] + "/" + m[1] + "  " + m[4] + ":" + m[5] + " hs";
+
+  // ---- Ubicación: calles de Villa María sugeridas al instante (sin internet) ----
+  var ABREVIATURAS = { bv: "bulevar", bvd: "bulevar", blvd: "bulevar", av: "avenida", avda: "avenida",
+    gral: "general", pje: "pasaje", dr: "doctor", pte: "presidente", cnel: "coronel", tte: "teniente",
+    sta: "santa", sto: "santo" };
+  function clave(t) {
+    return t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, " ")
+      .split(/\s+/).filter(Boolean).map(function (p) { return ABREVIATURAS[p] || p; }).join(" ");
+  }
+  var CALLES = JSON.parse(document.getElementById("calles-villa-maria").textContent).map(function (n) {
+    return { nombre: n, clave: clave(n), palabras: clave(n).split(" ") };
+  });
+  var porClave = {};
+  CALLES.forEach(function (c) { porClave[c.clave] = c; });
+
+  var campo = document.getElementById("{{ form.direccion_input.id_for_label }}");
+  // Esquina: la otra calle va en su casillero ("Es una esquina") o junta: "General Paz y Buenos Aires".
+  var esEsquina = document.getElementById("{{ form.es_esquina.id_for_label }}");
+  var esquina = document.getElementById("{{ form.esquina_input.id_for_label }}");
+  var etiquetaDireccion = document.getElementById("etiqueta-direccion");
+  var REGEX_ESQUINA = /^(.+?)\s+(?:y|e|esq\.?|esquina)\s+(.+?)\s*$/i;
+  function enEsquina() { return esEsquina.checked; }
+  function calleOficial(texto) { var o = porClave[clave(texto)]; return o ? o.nombre : texto.trim(); }
+  // Las dos calles de la esquina, o null si no es una esquina completa.
+  function esquinaEscrita() {
+    if (enEsquina()) {
+      var primera = campo.value.trim(), segunda = esquina.value.trim();
+      var junta = !segunda && primera.match(REGEX_ESQUINA);
+      if (junta) { primera = junta[1]; segunda = junta[2]; }
+      return primera.length >= 3 && segunda.length >= 3 ? [calleOficial(primera), calleOficial(segunda)] : null;
+    }
+    var m = campo.value.trim().match(REGEX_ESQUINA);
+    if (!m || /\d\s*$/.test(campo.value)) return null;
+    return m[2].length >= 3 ? [calleOficial(m[1]), calleOficial(m[2])] : null;
+  }
+  esEsquina.addEventListener("change", function () {
+    etiquetaDireccion.firstChild.textContent = enEsquina() ? "Ubicación calle " : "{{ form.direccion_input.label }} ";
+    campo.placeholder = enEsquina() ? "Ej: General Paz" : "Ej: Belgrano 450";
+    if (enEsquina()) campo.value = separar(campo.value).calle;
+    ultimaConsulta = "";
+    buscarBarrio();
+  });
+  var barrio = document.getElementById("{{ form.barrio.id_for_label }}");
+  var lat = document.getElementById("{{ form.latitud.id_for_label }}");
+  var lon = document.getElementById("{{ form.longitud.id_for_label }}");
+  var lista = document.getElementById("sugerencias");
+  // Marcas para lectores de pantalla: es un cuadro con lista de sugerencias.
+  campo.setAttribute("role", "combobox");
+  campo.setAttribute("aria-autocomplete", "list");
+  campo.setAttribute("aria-controls", "sugerencias");
+  campo.setAttribute("aria-expanded", "false");
+  var estado = document.getElementById("estado-direccion");
+  var ayudaOriginal = estado.textContent;
+  var barrioAutomatico = !barrio.value;
+  var opciones = [], activa = 0, espera = null, ultimaConsulta = "";
+
+  barrio.addEventListener("input", function () { barrioAutomatico = !barrio.value; });
+
+  // "belgrano 450" → { calle: "belgrano", numero: "450" }
+  function separar(texto) {
+    var p = texto.trim().match(/^(.*?)(?:\s+(\d{1,6}))?\s*$/);
+    return { calle: p[1], numero: p[2] || "" };
+  }
+
+  // Cada palabra tipeada tiene que ser el comienzo de alguna palabra de la calle.
+  function filtrar(texto) {
+    var buscadas = clave(texto).split(" ").filter(Boolean);
+    if (!buscadas.length) return [];
+    return CALLES.filter(function (c) {
+      return buscadas.every(function (b) { return c.palabras.some(function (p) { return p.indexOf(b) === 0; }); });
+    }).sort(function (a, b) {
+      var pa = a.clave.indexOf(buscadas[0]) === 0 ? 0 : 1, pb = b.clave.indexOf(buscadas[0]) === 0 ? 0 : 1;
+      return pa - pb || a.nombre.length - b.nombre.length || a.nombre.localeCompare(b.nombre);
+    }).slice(0, 8);
+  }
+
+  function mostrar(lista_opciones, texto_extra) {
+    opciones = lista_opciones; activa = 0;
+    lista.innerHTML = "";
+    opciones.forEach(function (o, i) {
+      var li = document.createElement("li");
+      li.setAttribute("role", "option");
+      li.textContent = o.nombre;
+      if (o.detalle) { var s = document.createElement("small"); s.textContent = " · " + o.detalle; li.appendChild(s); }
+      li.id = "sugerencia-" + i;
+      if (i === 0) li.className = "activa";
+      li.addEventListener("mousedown", function (e) { e.preventDefault(); elegir(i); });
+      lista.appendChild(li);
+    });
+    if (texto_extra) estado.textContent = texto_extra;
+    campo.setAttribute("aria-expanded", opciones.length ? "true" : "false");
+    if (opciones.length) campo.setAttribute("aria-activedescendant", "sugerencia-0");
+    else campo.removeAttribute("aria-activedescendant");
+  }
+
+  function marcar(i) {
+    activa = (i + opciones.length) % opciones.length;
+    Array.prototype.forEach.call(lista.children, function (li, j) { li.className = j === activa ? "activa" : ""; });
+    campo.setAttribute("aria-activedescendant", "sugerencia-" + activa);
+  }
+
+  function elegir(i) {
+    var o = opciones[i];
+    mostrar([]);
+    if (o.candidato) { aplicar(o.candidato); return; }
+    if (enEsquina()) {
+      campo.value = o.nombre;
+      esquina.focus();
+      estado.textContent = "Ahora la otra calle de la esquina.";
+      buscarBarrio();
+      return;
+    }
+    var numero = separar(campo.value).numero;
+    campo.value = o.nombre + " " + numero;
+    campo.focus();
+    if (numero) buscarBarrio(); else estado.textContent = "Ahora la altura (o tildá «Es una esquina»).";
+  }
+
+  // Barrio al instante: el de un parte anterior en la misma calle y a menos de 2 cuadras.
+  var HISTORIAL = JSON.parse(document.getElementById("historial-barrios").textContent);
+  function barrioConocido(calle, numero) {
+    var mejor = null;
+    HISTORIAL.forEach(function (h) {
+      var distancia = Math.abs(h[1] - numero);
+      if (h[0] === calle && distancia <= 200 && (!mejor || distancia < mejor.distancia)) {
+        mejor = { barrio: h[2], distancia: distancia };
+      }
+    });
+    return mejor && mejor.barrio;
+  }
+
+  function aplicar(c) {
+    if (!c.esquina) campo.value = c.calle + (c.numero ? " " + c.numero : "");
+    if (barrioAutomatico || !barrio.value) { barrio.value = c.barrio || ""; barrioAutomatico = true; }
+    lat.value = c.latitud; lon.value = c.longitud;
+    if (!c.barrio) estado.textContent = "Sin barrio en el mapa: cargalo a mano si lo sabés.";
+    else if (c.exacta) estado.textContent = "Barrio " + c.barrio + ".";
+    else estado.textContent = "Barrio " + c.barrio + " (aproximado: el mapa no tiene esa altura, verificalo).";
+  }
+
+  // Con calle y altura se pide el barrio al mapa (necesita internet).
+  function buscarBarrioEsquina(calles) {
+    var texto = calles[0] + " y " + calles[1];
+    if (texto === ultimaConsulta) return;
+    ultimaConsulta = texto;
+    estado.textContent = "Buscando el barrio de la esquina…";
+    fetch("{% url 'buscar_direccion' %}?q=" + encodeURIComponent(texto), { credentials: "same-origin" })
+      .then(function (r) { return r.json(); })
+      .then(function (datos) {
+        if (ultimaConsulta !== texto) return;
+        var c = (datos.candidatos || [])[0];
+        if (c) aplicar(c);
+        else estado.textContent = "Esquina " + texto + ": no se encontró en el mapa, cargá el barrio a mano.";
+      })
+      .catch(function () { estado.textContent = "Sin conexión con el mapa: cargá el barrio a mano."; });
+  }
+
+  function buscarBarrio() {
+    var calles = esquinaEscrita();
+    if (calles) { buscarBarrioEsquina(calles); return; }
+    if (enEsquina()) return;
+    var partes = separar(campo.value);
+    if (!partes.numero || partes.calle.length < 3) return;
+    var oficial = porClave[clave(partes.calle)];
+    var texto = (oficial ? oficial.nombre : partes.calle) + " " + partes.numero;
+    if (texto === ultimaConsulta) return;
+    ultimaConsulta = texto;
+    var conocido = oficial && barrioConocido(oficial.nombre, parseInt(partes.numero, 10));
+    if (conocido && (barrioAutomatico || !barrio.value)) {
+      barrio.value = conocido; barrioAutomatico = true;
+      estado.textContent = "Barrio " + conocido + " (de partes anteriores). Confirmando en el mapa…";
+    } else {
+      estado.textContent = "Buscando el barrio…";
+    }
+    fetch("{% url 'buscar_direccion' %}?q=" + encodeURIComponent(texto), { credentials: "same-origin" })
+      .then(function (r) { return r.json(); })
+      .then(function (datos) {
+        if (ultimaConsulta !== texto) return;  // el guardia siguió escribiendo
+        var candidatos = datos.candidatos || [];
+        if (oficial) candidatos = candidatos.filter(function (c) { return c.calle === oficial.nombre; }).concat(
+          candidatos.filter(function (c) { return c.calle !== oficial.nombre; }));
+        if (!candidatos.length) {
+          estado.textContent = conocido ? "Barrio " + conocido + " (de partes anteriores; el mapa no lo encontró)."
+            : "No se encontró el barrio en el mapa: cargalo a mano.";
+          return;
+        }
+        // Misma calle en varios barrios (calles largas): que elija el guardia.
+        var mismos = candidatos.filter(function (c) { return c.calle === candidatos[0].calle; });
+        if (mismos.length === 1 || mismos[0].exacta) { aplicar(mismos[0]); return; }
+        mostrar(mismos.map(function (c) { return { nombre: c.calle + " " + c.numero, detalle: "Barrio " + c.barrio, candidato: c }; }),
+          "Elegí el barrio:");
+      })
+      .catch(function () { estado.textContent = "Sin conexión con el mapa: cargá el barrio a mano."; });
+  }
+
+  esquina.addEventListener("input", function () {
+    lat.value = ""; lon.value = "";
+    clearTimeout(espera);
+    espera = setTimeout(buscarBarrio, 400);
+  });
+  esquina.addEventListener("blur", function () {
+    if (esquina.value.trim()) esquina.value = calleOficial(esquina.value);
+    buscarBarrio();
+  });
+
+  campo.addEventListener("input", function () {
+    lat.value = ""; lon.value = "";  // la coordenada ya no corresponde a lo escrito
+    clearTimeout(espera);
+    if (!enEsquina() && esquinaEscrita()) {
+      mostrar([]);
+      estado.textContent = "Esquina: se busca el barrio de las dos calles.";
+      espera = setTimeout(buscarBarrio, 400);
+      return;
+    }
+    var partes = separar(campo.value);
+    if (partes.numero) {
+      mostrar([]);
+      estado.textContent = ayudaOriginal;
+      espera = setTimeout(buscarBarrio, 250);
+      return;
+    }
+    var encontradas = filtrar(partes.calle);
+    var exacta = encontradas.length === 1 && encontradas[0].clave === clave(partes.calle);
+    mostrar(exacta ? [] : encontradas);
+    estado.textContent = partes.calle.length < 2 ? ayudaOriginal
+      : encontradas.length ? "Enter o Tab elige la calle; después escribí la altura."
+      : "No está en el listado de calles de Villa María. Se guarda tal cual.";
+  });
+
+  campo.addEventListener("keydown", function (e) {
+    if (!opciones.length) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); marcar(activa + 1); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); marcar(activa - 1); }
+    else if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); elegir(activa); }
+    else if (e.key === "Escape") { mostrar([]); }
+  });
+
+  campo.addEventListener("blur", function () {
+    if (opciones.length && opciones[0].candidato) return;  // queda a la vista para elegir el barrio
+    mostrar([]);
+    var partes = separar(campo.value);
+    var oficial = porClave[clave(partes.calle)];
+    if (oficial) campo.value = oficial.nombre + (partes.numero && !enEsquina() ? " " + partes.numero : "");
+    clearTimeout(espera);
+    buscarBarrio();
+  });
+})();
+</script>
+{% endblock %}

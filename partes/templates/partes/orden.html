@@ -1,0 +1,50 @@
+{% extends "partes/base.html" %}
+{% load static %}
+{% block titulo %}{{ o }}{% endblock %}
+{% block estilos %}
+  .hoja-orden { max-width:860px; margin:0 auto; background:#fff; padding:1.2rem 1.5rem; font-family:Arial, Helvetica, sans-serif; color:#111; }
+  .membrete { display:flex; gap:1rem; align-items:center; border-bottom:3px solid #1d76b8; padding-bottom:0.5rem; }
+  .membrete img { width:84px; height:84px; } .membrete .cuartel { font-size:1.45rem; font-weight:800; line-height:1.1; }
+  .membrete .datos { font-size:0.8rem; }
+  .fila-titulo { display:flex; gap:0.8rem; align-items:stretch; margin:0.8rem 0; flex-wrap:wrap; }
+  .fila-titulo .titulo { background:#1d76b8; color:#fff; font-weight:800; font-size:1.4rem; padding:0.4rem 1rem; border-radius:6px; flex:1; }
+  .fila-titulo .caja { border:1px solid #999; border-radius:6px; padding:0.4rem 0.8rem; font-weight:700; }
+  .marco { border:1px solid #999; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.7rem; }
+  .marco h3 { margin:-0.6rem -0.8rem 0.5rem -0.8rem; background:#dbeafe; padding:0.25rem 0.8rem; font-size:0.9rem; border-radius:6px 6px 0 0; }
+  .dos { display:grid; grid-template-columns:1fr 1fr; gap:0.7rem; }
+  .hoja-orden table { width:100%; border-collapse:collapse; } .hoja-orden th, .hoja-orden td { border:1px solid #bbb; padding:0.3rem 0.4rem; text-align:left; }
+  .linea-firma { margin-top:2.2rem; border-top:1px solid #111; padding-top:0.2rem; font-size:0.8rem; }
+  .solo-pantalla { max-width:860px; margin:0 auto 1rem auto; }
+  @media (max-width:640px) { .dos { grid-template-columns:1fr; } }
+  @media print { @page { size:A4; margin:10mm; } .lateral, .barra-movil, .msg, .solo-pantalla, noscript { display:none !important; }
+    .con-lateral main, main { margin:0 !important; padding:0 !important; max-width:none !important; }
+    .fila-titulo .titulo, .marco h3 { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+{% endblock %}
+{% block contenido %}
+<div class="solo-pantalla card"><div class="acciones" style="margin-top:0;">
+  <button type="button" class="btn" onclick="window.print()">Descargar PDF / Imprimir</button>
+  {% if perms.partes.change_ordenentrega %}<a class="btn gris" href="{% url 'editar_orden' o.pk %}">Corregir</a>{% endif %}
+  <a class="btn gris" href="{% url 'ordenes_entrega' %}">Volver</a></div>
+  <p class="ayuda" style="margin-bottom:0;">Estado: <b>{{ o.estado }}</b>. Para registrar la devolución, tocá Corregir y completá «Devuelto».</p></div>
+<div class="hoja-orden">
+  <div class="membrete"><img src="{% static 'partes/escudo.jpg' %}" alt="Escudo">
+    <div><div class="cuartel">Cuerpo de Bomberos Voluntarios de Villa María</div>
+      <div><b>Cte. Insp. Mayor B. V. Bautista Gianinetto</b></div>
+      <div class="datos">General Paz 358 - Villa María (Cba.) | (0353) 4533300 - 4533400 - 100</div></div></div>
+  <div class="fila-titulo"><div class="titulo">ORDEN DE ENTREGA{% if o.movimiento == "entrada" %} (ENTRADA){% endif %}</div>
+    <div class="caja">N° {{ o.numero_correlativo|stringformat:"08d" }}</div><div class="caja">FECHA: {{ o.fecha|date:"d/m/Y" }}</div></div>
+  <div class="marco">Recibí del Cuerpo de Bomberos Voluntarios de Villa María, en calidad de: <b>{{ o.get_calidad_display }}{% if o.calidad_otro %} ({{ o.calidad_otro }}){% endif %}</b>
+    {% if o.por_orden %} · por orden de N° <b>{{ o.por_orden }}</b>{% endif %}{% if o.origen %} · Origen: {{ o.origen }}{% endif %}{% if o.destino %} · Área / destino: <b>{{ o.destino }}</b>{% endif %}, los siguientes elementos:
+    <table style="margin-top:0.5rem;"><tr><th style="width:4rem;">Cant.</th><th>Descripción del elemento</th><th>Estado / observaciones</th></tr>
+      {% for e in o.elementos.all %}<tr><td>{{ e.cantidad }}</td><td>{{ e.descripcion }}</td><td>{{ e.estado }}</td></tr>
+      {% empty %}<tr><td colspan="3">—</td></tr>{% endfor %}</table>
+    {% if o.motivo %}<p style="margin:0.5rem 0 0 0;"><b>Motivo de entrega / destino:</b> {{ o.motivo|linebreaksbr }}</p>{% endif %}</div>
+  <div class="dos">
+    <div class="marco"><h3>ENTREGADO POR (Cuerpo de Bomberos)</h3>Nombre y apellido: {{ o.entregado_por|default:"" }}<br>Cargo: {{ o.cargo_entrega }}<div class="linea-firma">Firma</div></div>
+    <div class="marco"><h3>QUIEN RETIRA</h3>Nombre y apellido: {{ o.retira_nombre }}<br>DNI N°: {{ o.retira_dni }} · Teléfono: {{ o.retira_telefono }}<br>Dirección: {{ o.retira_direccion }}<div class="linea-firma">Firma</div></div>
+    <div class="marco"><h3>AUTORIZA EL RETIRO</h3>Nombre y apellido: {{ o.autoriza|default:"" }}<br>Cargo: {{ o.cargo_autoriza }}<div class="linea-firma">Firma</div></div>
+    <div class="marco"><h3>DEVUELTO</h3>Fecha de devolución: {{ o.fecha_devolucion|date:"d/m/Y" }}<br>Recibido por: {{ o.recibido_por }}<br>Estado al devolver: {{ o.estado_devolucion }}<br>Novedades: {{ o.novedades }}<div class="linea-firma">Firma</div></div>
+  </div>
+  <p style="text-align:center;font-size:0.75rem;margin:0.4rem 0 0 0;">Documento interno para registro y control de entrega y devolución de materiales.</p>
+</div>
+{% endblock %}

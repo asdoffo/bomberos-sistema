@@ -1,0 +1,100 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}{% if mantenimiento.pk %}Corregir mantenimiento {{ mantenimiento.numero_correlativo }}/{{ mantenimiento.anio }}{% else %}Nuevo mantenimiento{% endif %} — Bomberos Villa María{% endblock %}
+
+{% block contenido %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="card">
+    <h1>{% if mantenimiento.pk %}Control de Mantenimiento N° {{ mantenimiento.numero_correlativo }}/{{ mantenimiento.anio }}{% else %}Control de Mantenimiento{% endif %}</h1>
+    <p class="ayuda" style="margin:0;">El número lo pone el sistema.</p>
+    {% if form.non_field_errors %}<div class="msg error" style="margin-top:0.8rem;">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="campos">{% include "partes/_campo.html" with campo=form.obligatoria %}</div>
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.fecha %}
+      {% include "partes/_campo.html" with campo=form.hora_inicio %}
+      {% include "partes/_campo.html" with campo=form.hora_fin %}
+    </div>
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.guardia %}
+      {% include "partes/_campo.html" with campo=form.guardia_desde %}
+      {% include "partes/_campo.html" with campo=form.guardia_hasta %}
+    </div>
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.lugar %}
+      <div data-mostrar-si="lugar=taller">{% include "partes/_campo.html" with campo=form.taller %}</div>
+    </div>
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.autorizo %}
+      {% include "partes/_campo.html" with campo=form.a_cargo %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Personal que trabajó</h2>
+    {% include "partes/_grilla_personal.html" with campo=form.participantes anio=form.anio contador="Cantidad de personal" %}
+  </div>
+
+  <div class="card">
+    <div class="campos">{% include "partes/_campo.html" with campo=form.vehiculo %}
+      {% include "partes/_campo.html" with campo=form.elemento %}</div>
+    <p class="ayuda">Si el trabajo no fue sobre un móvil, dejá el vehículo vacío y anotá qué se mantuvo.</p>
+    {% if puede_moviles %}<p class="ayuda"><a href="{% url 'moviles' %}">Cargar o corregir móviles</a></p>{% endif %}
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.descripcion %}
+      {% include "partes/_campo.html" with campo=form.tipo %}
+      {% include "partes/_campo.html" with campo=form.registro_libros %}
+      {% include "partes/_campo.html" with campo=form.motivo %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.costo_repuestos %}
+      {% include "partes/_campo.html" with campo=form.repuestos_pedidos %}
+      {% include "partes/_campo.html" with campo=form.horas_taller %}
+      {% include "partes/_campo.html" with campo=form.costo_hora %}
+      {% include "partes/_campo.html" with campo=form.costo_bombero %}
+    </div>
+    <div class="ayuda" id="costo-total" aria-live="polite"></div>
+  </div>
+
+  <div class="card">
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.observaciones %}
+      {% include "partes/_campo.html" with campo=form.controlo %}
+    </div>
+  </div>
+
+  <div class="barra-guardar">
+    <button type="submit" class="btn">Guardar</button>
+    <a class="btn gris" href="{% if mantenimiento.pk %}{% url 'detalle_mantenimiento' mantenimiento.pk %}{% else %}{% url 'mantenimientos' %}{% endif %}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    // Costo total estimado: repuestos + horas de taller × costo real hora.
+    function numero(id) {
+      var valor = (document.getElementById(id).value || "").replace(",", ".");
+      return valor === "" ? null : Number(valor);
+    }
+    var total = document.getElementById("costo-total");
+    function calcular() {
+      var repuestos = numero("{{ form.costo_repuestos.id_for_label }}");
+      var horas = numero("{{ form.horas_taller.id_for_label }}");
+      var hora = numero("{{ form.costo_hora.id_for_label }}");
+      var manoObra = horas !== null && hora !== null ? horas * hora : null;
+      if (repuestos === null && manoObra === null) { total.textContent = ""; return; }
+      var suma = (repuestos || 0) + (manoObra || 0);
+      if (isNaN(suma)) { total.textContent = ""; return; }
+      total.textContent = "Costo total estimado: $ " + suma.toLocaleString("es-AR", { maximumFractionDigits: 2 }) +
+        (manoObra !== null ? " (mano de obra $ " + manoObra.toLocaleString("es-AR", { maximumFractionDigits: 2 }) + ")" : "");
+    }
+    document.addEventListener("input", calcular);
+    calcular();
+  })();
+</script>
+{% endblock %}

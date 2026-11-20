@@ -1,0 +1,8 @@
+{# Todos los campos visibles de un form en grilla. Uso: include con form=... #}
+{% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+{% if form.non_field_errors %}<div class="msg error">{{ form.non_field_errors }}</div>{% endif %}
+<div class="campos">
+  {% for campo in form.visible_fields %}
+    {% if campo.name != "DELETE" %}{% include "partes/_campo.html" with campo=campo %}{% endif %}
+  {% endfor %}
+</div>

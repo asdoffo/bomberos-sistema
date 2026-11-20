@@ -1,0 +1,49 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}Períodos — Bomberos Villa María{% endblock %}
+
+{% block estilos %}
+  .cabecera { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.6rem; }
+  .estante { display:grid; grid-template-columns:repeat(auto-fill, minmax(11rem, 1fr)); gap:1rem; margin-top:1.2rem; }
+  .tomo { display:flex; flex-direction:column; gap:0.35rem; text-decoration:none; color:var(--texto);
+          border:1px solid var(--borde); border-left:10px solid var(--gris); border-radius:6px 10px 10px 6px;
+          padding:1rem 1rem 0.9rem 0.9rem; background:#fcfcfd; min-height:11rem; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+  .tomo:hover { box-shadow:0 3px 8px rgba(0,0,0,0.12); }
+  .tomo.abierto { border-left-color:var(--rojo); background:#fff; }
+  .tomo .rotulo { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--gris); }
+  .tomo .anio { font-size:2rem; font-weight:800; line-height:1; }
+  .tomo .cifras { margin-top:auto; font-size:0.85rem; color:var(--gris); line-height:1.5; }
+  .tomo .estado-tomo { font-size:0.8rem; font-weight:700; }
+  .tomo.abierto .estado-tomo { color:var(--rojo); }
+{% endblock %}
+
+{% block contenido %}
+<div class="card">
+  <div class="cabecera">
+    <h1 style="margin:0;">Períodos</h1>
+    {% if puede_abrir and perms.partes.gestionar_periodo %}
+    <form method="post" action="{% url 'abrir_tomo' %}" onsubmit="return confirm('¿Abrir el período {{ siguiente }}? Después vas a asignar los números de mérito.');">
+      {% csrf_token %}<button type="submit" class="btn">Abrir período {{ siguiente }}</button>
+    </form>
+    {% endif %}
+  </div>
+  <p class="ayuda" style="margin-bottom:0;">Cada año es un tomo: sus partes, sus capacitaciones y los números de mérito de ese año.
+    Al cerrarlo queda guardado tal cual y se empieza el siguiente.</p>
+
+  <div class="estante">
+    {% for t in tomos %}
+      <a class="tomo {% if not t.cerrado %}abierto{% endif %}" href="{% url 'tomo' t.anio %}">
+        <span class="rotulo">Tomo</span>
+        <span class="anio">{{ t.anio }}</span>
+        <span class="estado-tomo">{% if t.cerrado %}Cerrado el {{ t.fecha_cierre|date:"d/m/Y" }}{% else %}Abierto{% endif %}</span>
+        <span class="cifras">
+          {{ t.partes }} parte{{ t.partes|pluralize }}<br>
+          {{ t.capacitaciones }} capacitaci{{ t.capacitaciones|pluralize:"ón,ones" }}<br>
+          {{ t.mantenimientos }} mantenimiento{{ t.mantenimientos|pluralize }}<br>
+          {{ t.bomberos }} bombero{{ t.bomberos|pluralize }} con número
+        </span>
+      </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

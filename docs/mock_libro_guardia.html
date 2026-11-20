@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Libro de guardia (mock)</title>
+<style>
+  :root { --rojo:#c0392b; --rojo-suave:#fdecea; --fondo:#f3f4f6; --texto:#1f2937; --gris:#6b7280; --borde:#e5e7eb; --azul:#2563eb; --verde:#15803d; }
+  * { box-sizing:border-box; }
+  body { font-family:system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background:var(--fondo); color:var(--texto); margin:0; padding:1rem; line-height:1.45; }
+  h1 { color:var(--rojo); font-size:1.35rem; margin:0 0 .2rem 0; }
+  h2 { font-size:1.02rem; margin:0 0 .5rem 0; }
+  .contenedor { max-width:1050px; margin:0 auto; }
+  .card { background:#fff; padding:1rem 1.2rem; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.08); border:1px solid var(--borde); margin-bottom:1rem; }
+  .btn { display:inline-block; background:var(--rojo); color:#fff; border:0; padding:.5rem .9rem; border-radius:8px; font-weight:600; font-size:.9rem; cursor:pointer; text-decoration:none; font-family:inherit; }
+  .btn.gris { background:#e5e7eb; color:#111; } .btn.verde { background:var(--verde); } .btn.chico { padding:.28rem .6rem; font-size:.8rem; }
+  .acciones { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+  .ayuda { color:var(--gris); font-size:.85rem; }
+  .aviso-mock { max-width:1050px; margin:0 auto 1rem auto; background:#fef9c3; border:1px dashed #ca8a04; border-radius:8px; padding:.6rem .9rem; font-size:.85rem; }
+  .pestanas { display:flex; gap:.3rem; margin-top:.5rem; flex-wrap:wrap; }
+  .pestanas button { font:inherit; font-size:.85rem; padding:.35rem .8rem; border-radius:999px; border:1px solid #ca8a04; background:#fff; cursor:pointer; }
+  .pestanas button.activa { background:#ca8a04; color:#fff; }
+  .vista { display:none; } .vista.activa { display:block; }
+  label { display:block; font-size:.85rem; font-weight:600; margin:.5rem 0 .2rem 0; }
+  input, select, textarea { width:100%; font:inherit; padding:.45rem .55rem; border:1px solid #cbd5e1; border-radius:8px; background:#fff; }
+  .campos { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:0 .8rem; }
+  .ancho { grid-column:1 / -1; }
+  .cambio { display:block; background:#fffbeb; border-left:4px solid #f59e0b; border-radius:6px; padding:.4rem .6rem; font-size:.8rem; margin:.5rem 0; color:#78350f; }
+  .cambio::before { content:"💡 "; }
+
+  .layout { display:grid; grid-template-columns:1fr 290px; gap:1rem; align-items:start; }
+  .turno { display:flex; justify-content:space-between; gap:.8rem; flex-wrap:wrap; align-items:center; background:#111827; color:#fff; border-radius:10px; padding:.7rem 1rem; margin-top:.7rem; }
+  .turno b { font-size:1.05rem; } .turno span { color:#d1d5db; font-size:.85rem; }
+  .rapidos { display:grid; grid-template-columns:repeat(auto-fit, minmax(105px, 1fr)); gap:.4rem; margin:.7rem 0 .2rem 0; }
+  .rapidos button { font:inherit; font-size:.82rem; font-weight:600; padding:.55rem .3rem; border-radius:8px; border:1px solid var(--borde); background:#f9fafb; cursor:pointer; }
+  .rapidos button.on { background:#1f2937; color:#fff; border-color:#1f2937; }
+  .rapidos button span { display:block; font-size:1.1rem; }
+  .vista-previa { background:#f9fafb; border:1px dashed #cbd5e1; border-radius:8px; padding:.45rem .65rem; font-size:.9rem; margin-top:.5rem; }
+
+  .filtros { display:flex; gap:.4rem; flex-wrap:wrap; align-items:center; }
+  .filtros .chipf { font-size:.78rem; padding:.25rem .6rem; border-radius:999px; border:1px solid var(--borde); background:#fff; cursor:pointer; }
+  .filtros .chipf.on { background:#1f2937; color:#fff; border-color:#1f2937; }
+
+  .linea { list-style:none; padding:0; margin:.6rem 0 0 0; }
+  .linea li { display:grid; grid-template-columns:3.6rem 1.9rem 1fr auto; gap:.5rem; padding:.55rem 0; border-bottom:1px solid var(--borde); align-items:start; font-size:.9rem; }
+  .linea .h { font-weight:800; font-variant-numeric:tabular-nums; }
+  .linea .ico { width:1.7rem; height:1.7rem; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.9rem; }
+  .linea .meta { font-size:.75rem; color:var(--gris); margin-top:.1rem; }
+  .linea .folio { font-size:.72rem; color:var(--gris); white-space:nowrap; text-align:right; }
+  .i-ing { background:#dcfce7; } .i-egr { background:#f3f4f6; } .i-sal { background:#fee2e2; } .i-reg { background:#e0e7ff; } .i-nov { background:#fef3c7; } .i-rel { background:#1f2937; color:#fff; } .i-mov { background:#e0f2fe; }
+  .auto { display:inline-block; font-size:.68rem; font-weight:700; padding:.02rem .4rem; border-radius:999px; background:#e0e7ff; color:#3730a3; margin-left:.3rem; }
+  .imp { display:inline-block; font-size:.68rem; font-weight:700; padding:.02rem .4rem; border-radius:999px; background:#fee2e2; color:#991b1b; margin-left:.3rem; }
+  .tarde { display:inline-block; font-size:.68rem; font-weight:700; padding:.02rem .4rem; border-radius:999px; background:#f3f4f6; color:#374151; margin-left:.3rem; }
+  li.corregida .txt { text-decoration:line-through; color:var(--gris); }
+  li.correccion { background:#fffbeb; }
+
+  .lateral .item { display:flex; justify-content:space-between; gap:.4rem; padding:.3rem 0; border-bottom:1px solid var(--borde); font-size:.85rem; }
+  .lateral .item:last-child { border-bottom:0; }
+  .pill { display:inline-block; font-size:.7rem; font-weight:700; padding:.03rem .45rem; border-radius:999px; background:#e5e7eb; color:#374151; white-space:nowrap; }
+  .pill.ok { background:#dcfce7; color:#14532d; } .pill.mal { background:#fee2e2; color:#991b1b; } .pill.fuera { background:#fef3c7; color:#78350f; }
+  .visado { border:2px solid var(--verde); border-radius:8px; padding:.5rem .7rem; font-size:.85rem; background:#f0fdf4; }
+
+  .check { display:grid; grid-template-columns:1fr auto auto; gap:.3rem .6rem; align-items:center; font-size:.9rem; }
+  .check .seg { display:inline-flex; border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; }
+  .check .seg span { padding:.22rem .55rem; font-size:.78rem; } .check .seg span.on { background:#1f2937; color:#fff; }
+  .firmas { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; margin-top:.8rem; }
+  .firma { border:1px solid var(--borde); border-radius:8px; padding:.6rem .7rem; }
+
+  table { width:100%; border-collapse:collapse; font-size:.86rem; }
+  th, td { padding:.4rem .5rem; border-bottom:1px solid var(--borde); text-align:left; vertical-align:top; }
+  th { font-size:.72rem; text-transform:uppercase; letter-spacing:.03em; color:#4b5563; background:#f9fafb; }
+
+  @media (max-width:900px) { .layout { grid-template-columns:1fr; } .rapidos { grid-template-columns:repeat(3, 1fr); } .firmas { grid-template-columns:1fr; } }
+  @media (max-width:520px) { body { padding:.5rem; } .linea li { grid-template-columns:3rem 1.7rem 1fr; } .linea .folio { grid-column:3; text-align:left; } }
+</style>
+</head>
+<body>
+
+<div class="aviso-mock">
+  <b>Mock con sugerencias</b> para el libro de guardia. Cada 💡 es algo nuevo respecto de hoy (un campo de texto y «Anotar»). Se mantiene lo que ya tiene: no se edita ni se borra, folio por año, sello encadenado y correcciones del Jefe. Datos inventados. Pantallas:
+  <div class="pestanas">
+    <button type="button" class="activa" data-vista="dia">1. Libro del día</button>
+    <button type="button" data-vista="relevo">2. Inicio de guardia (06:00)</button>
+    <button type="button" data-vista="visado">3. Visado del Jefe</button>
+    <button type="button" data-vista="buscar">4. Buscar e imprimir</button>
+  </div>
+</div>
+
+<div class="contenedor">
+
+<!-- ============================================================ 1. DÍA -->
+<section class="vista activa" id="dia">
+  <div class="card">
+    <div class="acciones" style="justify-content:space-between;">
+      <h1>Libro de guardia</h1>
+      <div class="acciones"><a class="btn gris chico" href="#">← Guardia anterior</a><b>Guardia del sáb 15/11 06:00 al dom 16/11 06:00</b><a class="btn gris chico" href="#" data-ir="buscar">Buscar</a></div>
+    </div>
+    <div class="turno">
+      <div><b>Guardia en curso</b> · a cargo: Luna, Esteban (118) · inició sesión a las 06:04<br><span>Termina a las 06:00 del domingo: a esa hora se cierra la sesión y la guardia queda cerrada en el libro · 4 integrantes de guardia</span></div>
+      <a class="btn chico" href="#">Dejar novedades para la próxima guardia</a>
+    </div>
+    <span class="cambio">el libro se organiza por <b>guardia de 06:00 a 06:00</b>, no por día calendario. El relevo es <b>automático</b>: a las 06:00 se cierra la guardia saliente (la sesión del guardia ya vence a esa hora), y cuando el entrante inicia sesión queda anotado «Recibe la guardia…». Las novedades se siguen pasando de palabra; si el saliente quiere, puede dejarlas escritas y el entrante las ve al entrar.</span>
+
+    <h2 style="margin-top:.9rem;">Nueva anotación</h2>
+    <div class="rapidos" role="group" aria-label="Tipo de anotación">
+      <button type="button" class="on"><span>➜</span>Ingresa a la guardia</button>
+      <button type="button"><span>⇠</span>Se retira</button>
+      <button type="button"><span>☎</span>Llamada sin salida</button>
+      <button type="button"><span>👤</span>Visita</button>
+      <button type="button"><span>📦</span>Materiales</button>
+      <button type="button"><span>🔧</span>Novedad de equipos / unidades</button>
+      <button type="button"><span>📝</span>Novedad general</button>
+      <button type="button"><span>⋯</span>Otra</button>
+    </div>
+    <span class="cambio">botones por <b>tipo de anotación</b>. En ingreso y retiro de la guardia se elige al integrante de una lista y el texto se arma solo, con el estilo de siempre. Siempre se puede agregar texto libre. Las salidas y regresos de unidades no se escriben a mano: se anotan solos desde el parte.</span>
+    <div class="campos">
+      <div><label>Hs.</label><input value="21:40" type="time"></div>
+      <div><label>Integrante</label><select><option>087 — Rodríguez, Pablo</option><option>112 — Gómez, María Laura</option></select></div>
+      <div class="ancho"><label>Agregar (opcional)</label><input placeholder="Ej: viene por la capacitación de ERA"></div>
+    </div>
+    <div class="vista-previa">Así queda en el libro: <b>«Ingresa a la guardia el Bv. Rodríguez P. (087)»</b></div>
+    <div class="acciones" style="margin-top:.6rem;">
+      <button class="btn" type="button">Anotar</button>
+      <label style="margin:0;font-weight:400;"><input type="checkbox" style="width:auto;"> Marcar como <b>importante</b> (le llega al Jefe)</label>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="card">
+      <div class="filtros">
+        <span class="ayuda">Ver:</span>
+        <span class="chipf on">Todo (11)</span><span class="chipf">Personal (5)</span><span class="chipf">Unidades (4)</span><span class="chipf">Novedades (2)</span><span class="chipf">Importantes (1)</span>
+      </div>
+      <ul class="linea">
+        <li><span class="h">06:00</span><span class="ico i-rel">⇄</span>
+          <div><span class="txt">Cierra la guardia del Bv. Spat A. (14/11 06:02 a 15/11 06:00): 3 partes, 9 anotaciones.</span><span class="auto">automática · cambio de guardia</span>
+            <div class="meta">Sistema · sello 3E0A9B2C71</div></div><span class="folio">Folio 411/2026</span></li>
+        <li><span class="h">06:04</span><span class="ico i-rel">⇄</span>
+          <div><span class="txt">Recibe la guardia el Bv. Luna E. Novedades escritas por la guardia anterior: «U°9 fuera de servicio (bomba). Radio base con interferencia.»</span><span class="auto">automática · inicio de sesión</span>
+            <div class="meta">Luna, Esteban · sello 7F21A0C3D9</div></div><span class="folio">Folio 412</span></li>
+        <li><span class="h">08:05</span><span class="ico i-ing">➜</span>
+          <div><span class="txt">Ingresan a la guardia: Bv. Gómez M. L. (112), Bv. Sosa L. (125), Asp. Medina D. (131).</span>
+            <div class="meta">Luna, Esteban · sello 2B90E1F4C6</div></div><span class="folio">Folio 413</span></li>
+        <li><span class="h">10:30</span><span class="ico i-nov">📝</span>
+          <div><span class="txt">Se recibe donación de 20 matafuegos de la Cooperativa (entrada, en calidad de donación). Quedan en el depósito.</span><span class="auto">automática · Orden de entrega 00000041</span>
+            <div class="meta">Luna, Esteban · sello 4D11C02B87</div></div><span class="folio">Folio 414</span></li>
+        <li><span class="h">13:09</span><span class="ico i-nov">📋</span>
+          <div><span class="txt">Se inicia el parte 87/2026: 02-114 Colisión auto-moto en Belgrano 450 (llamado telefónico).</span><span class="auto">automática · Parte 87/2026</span>
+            <div class="meta">Luna, Esteban · sello 5C1D8E2F04</div></div><span class="folio">Folio 415</span></li>
+        <li><span class="h">13:12</span><span class="ico i-sal">🚒</span>
+          <div><span class="txt">Sale U°12 por un 02-114 (Belgrano 450), a cargo del Bv. Luna E., con 6 integrantes.</span><span class="auto">automática · Parte 87/2026</span>
+            <div class="meta">Generada al marcar la salida en el parte · sello 9A3E77B210</div></div><span class="folio">Folio 416</span></li>
+        <li><span class="h">13:41</span><span class="ico i-reg">↩</span>
+          <div><span class="txt">Regresa U°12 del 02-114. Km 54.912. Sin novedad.</span><span class="auto">automática · Parte 87/2026</span>
+            <div class="meta">Generada al marcar el regreso · sello C7D5019E3A</div></div><span class="folio">Folio 417</span></li>
+        <li class="corregida"><span class="h">15:20</span><span class="ico i-egr">⇠</span>
+          <div><span class="txt">Se retira de la guardia el Bv. Sosa L. (125).</span>
+            <div class="meta">Luna, Esteban · sello 1E8B4F90D2</div></div><span class="folio">Folio 418</span></li>
+        <li class="correccion"><span class="h">15:20</span><span class="ico i-egr">⇠</span>
+          <div><span class="txt">Se retira de la guardia el Asp. Medina D. (131).</span>
+            <div class="meta">Corrige el folio 418 · Motivo: «se anotó a la persona equivocada» · Fernández, Raúl (Jefe) · sello 66A0D3C1B8</div></div><span class="folio">Folio 419</span></li>
+        <li><span class="h">18:00</span><span class="ico i-nov">📝</span>
+          <div><span class="txt">Se reporta tarea T-21/2026: el portón del garage no cierra (prioridad alta).</span><span class="auto">automática · Tarea pendiente T-21</span><span class="imp">importante</span>
+            <div class="meta">Luna, Esteban · sello 0F4C2A91E7</div></div><span class="folio">Folio 420</span></li>
+        <li><span class="h">19:45</span><span class="ico i-nov">📝</span>
+          <div><span class="txt">Llama vecino de Bv. España 1200 por olor a gas; se le indica llamar a la distribuidora. No se despacha unidad.</span><span class="tarde">anotada 20:30</span>
+            <div class="meta">Luna, Esteban · sello A2B3C4D5E6</div></div><span class="folio">Folio 421</span></li>
+      </ul>
+      <span class="cambio">cada anotación muestra un <b>ícono por tipo</b> y se puede filtrar. Lo que ya se carga en el sistema se anota <b>solo</b>, con enlace: inicio, salida, regreso y cierre de partes; órdenes de entrega; tareas pendientes; mantenimientos. Así no se escribe dos veces. Si se anota mucho después del hecho, se ve «anotada 20:30».</span>
+    </div>
+
+    <div class="lateral">
+      <div class="card">
+        <h2>De guardia ahora (4)</h2>
+        <div class="item"><span><b>118</b> Luna, E.</span><span class="pill ok">guardia</span></div>
+        <div class="item"><span><b>112</b> Gómez, M. L.</span><span class="ayuda">desde 08:05</span></div>
+        <div class="item"><span><b>125</b> Sosa, L.</span><span class="ayuda">desde 08:05</span></div>
+        <div class="item"><span><b>087</b> Rodríguez, P.</span><span class="ayuda">desde 21:40</span></div>
+        <span class="cambio">sale de los ingresos y retiros de la guardia: solo quienes están de guardia activa, no quien pasa un momento por el cuartel. Es solo informativo.</span>
+      </div>
+      <div class="card">
+        <h2>Unidades</h2>
+        <div class="item"><span>U°12 Sprinter</span><span class="pill ok">en el cuartel</span></div>
+        <div class="item"><span>U°62 VW 13180</span><span class="pill ok">en el cuartel</span></div>
+        <div class="item"><span>U°9 Iveco</span><span class="pill mal">fuera de servicio</span></div>
+        <div class="item"><span>U°4 Transit</span><span class="pill fuera">en salida · 21:30</span></div>
+      </div>
+      <div class="card">
+        <h2>Visado del Jefe</h2>
+        <div class="visado">✔ Guardia del 14/11 visada por Fernández, R. el 15/11 09:10.</div>
+        <p class="ayuda" style="margin-bottom:0;">Guardia en curso: se visa cuando termine. <a href="#" data-ir="visado">Ver guardias sin visar (1)</a></p>
+        <span class="cambio">como la firma del Jefe en el libro de papel: el Jefe firma cada guardia terminada (con su contraseña) y queda sellado.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 2. INICIO DE GUARDIA -->
+<section class="vista" id="relevo">
+  <div class="card" style="max-width:760px;margin:0 auto;">
+    <div class="ayuda">Lo que ve el guardia entrante al iniciar sesión (domingo 16/11, 06:03)</div>
+    <h1>Recibís la guardia</h1>
+    <div class="ayuda">Guardia del dom 16/11 06:00 al lun 17/11 06:00 · a cargo: <b>Pérez, Juan Carlos (041)</b> · la anterior estuvo a cargo de Luna, Esteban</div>
+    <span class="cambio">no hay que hacer nada para el relevo: al iniciar sesión queda anotado «Recibe la guardia…» en el libro. Esta pantalla es una ayuda para la charla de palabra, con lo que dejó la guardia anterior.</span>
+
+    <h2 style="margin-top:.8rem;">Novedades que dejó escritas Luna, E.</h2>
+    <div class="vista-previa" style="margin-top:0;">Radio base sigue con interferencia: se usa el handy 3. Portón del garage roto (tarea T-21). U°9 sigue fuera de servicio.</div>
+    <p class="ayuda">Opcional: el saliente las escribe antes de las 06:00 con «Dejar novedades para la próxima guardia». Si no escribió nada, este recuadro no aparece.</p>
+
+    <h2>Lo que quedó abierto</h2>
+    <div class="check" style="grid-template-columns:1fr auto;">
+      <span>Partes sin cerrar</span><span class="pill ok">0</span>
+      <span>Anotaciones importantes de la guardia anterior</span><span class="pill fuera">1 · portón del garage</span>
+      <span>Unidades fuera de servicio</span><span class="pill mal">U°9</span>
+      <span>Tareas pendientes que afectan la operatividad</span><span class="pill mal">2</span>
+      <span>Órdenes de entrega pendientes de devolución</span><span class="pill">3</span>
+    </div>
+    <div class="acciones" style="margin-top:.9rem;"><a class="btn" href="#" data-ir="dia">Ir al libro de guardia</a></div>
+  </div>
+</section>
+
+<!-- ============================================================ 4. VISADO -->
+<section class="vista" id="visado">
+  <div class="card" style="max-width:760px;margin:0 auto;">
+    <h1>Visado del libro</h1>
+    <div class="ayuda">Solo el Jefe. Reemplaza la firma del Jefe en el libro de papel: una firma por guardia (de 06:00 a 06:00).</div>
+    <table style="margin-top:.7rem;">
+      <tr><th>Guardia</th><th>A cargo</th><th>Anotaciones</th><th>Importantes</th><th></th></tr>
+      <tr><td>Sáb 15/11 → dom 16/11</td><td>Luna, E.</td><td>12</td><td>1</td><td><a class="btn chico" href="#">Ver y visar</a></td></tr>
+      <tr><td>Vie 14/11 → sáb 15/11</td><td>Spat, A.</td><td>9</td><td>0</td><td><span class="pill ok">visada 15/11 09:10</span></td></tr>
+      <tr><td>Jue 13/11 → vie 14/11</td><td>Nicola, G.</td><td>7</td><td>0</td><td><span class="pill ok">visada 14/11 08:40</span></td></tr>
+    </table>
+    <div class="visado" style="margin-top:.8rem;">
+      <b>Visar la guardia del sáb 15/11</b> (12 anotaciones, folios 411 a 422).
+      <input type="text" placeholder="Observación del Jefe (opcional)" style="margin-top:.4rem;">
+      <input type="password" placeholder="Tu contraseña" style="margin-top:.4rem;">
+      <button class="btn verde" type="button" style="margin-top:.4rem;">Visar</button>
+    </div>
+    <p class="ayuda" style="margin-bottom:0;">El visado queda como una anotación más del libro (con sello) y no se puede deshacer. Si después aparece algo, el Jefe agrega una corrección como hoy.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 3. BUSCAR -->
+<section class="vista" id="buscar">
+  <div class="card">
+    <div class="acciones" style="justify-content:space-between;">
+      <h1>Buscar en el libro</h1>
+      <div class="acciones"><a class="btn gris" href="#">Imprimir / PDF</a><a class="btn gris" href="#">Exportar a Excel</a></div>
+    </div>
+    <div class="campos">
+      <div><label>Texto</label><input value="portón"></div>
+      <div><label>Desde</label><input type="date" value="2026-10-01"></div>
+      <div><label>Hasta</label><input type="date" value="2026-11-15"></div>
+      <div><label>Tipo</label><select><option>Todos</option><option>Ingreso / egreso</option><option>Salida / regreso</option><option>Novedad</option><option>Relevo</option></select></div>
+      <div><label>Integrante o unidad</label><select><option>Cualquiera</option><option>U°12</option><option>087 — Rodríguez</option></select></div>
+      <div><label>Escribió</label><select><option>Cualquiera</option></select></div>
+    </div>
+    <span class="cambio">hoy solo se navega día por día. Buscar en todo el libro (texto, tipo, persona, unidad, fechas) e imprimir un período con folios y sellos, para archivo o para presentar si alguien lo pide.</span>
+  </div>
+  <div class="card">
+    <table>
+      <tr><th>Fecha y hora</th><th>Folio</th><th>Tipo</th><th>Anotación</th><th>Escribió</th></tr>
+      <tr><td>15/11 18:00</td><td>419</td><td>Novedad</td><td>Se rompe el <b>portón</b> del garage: no cierra. Se avisa al encargado de móviles.</td><td>Luna, E.</td></tr>
+      <tr><td>02/11 09:20</td><td>371</td><td>Novedad</td><td>Se engrasa el <b>portón</b> del garage, hacía ruido.</td><td>Spat, A.</td></tr>
+      <tr><td>14/10 16:45</td><td>298</td><td>Novedad</td><td>Visita del proveedor del <b>portón</b> automático para presupuesto.</td><td>Nicola, G.</td></tr>
+    </table>
+    <p class="ayuda" style="margin-bottom:0;">El Jefe también ve el control de integridad del libro (sellos encadenados), como hoy.</p>
+  </div>
+</section>
+
+</div>
+
+<script>
+  function ir(vista) {
+    document.querySelectorAll(".vista").forEach(v => v.classList.toggle("activa", v.id === vista));
+    document.querySelectorAll(".pestanas button").forEach(b => b.classList.toggle("activa", b.dataset.vista === vista));
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll(".pestanas button").forEach(b => b.addEventListener("click", () => ir(b.dataset.vista)));
+  document.querySelectorAll("[data-ir]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); ir(el.dataset.ir); }));
+  document.querySelectorAll(".rapidos button").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll(".rapidos button").forEach(x => x.classList.toggle("on", x === b));
+  }));
+  document.querySelectorAll(".filtros .chipf").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll(".filtros .chipf").forEach(x => x.classList.toggle("on", x === b));
+  }));
+</script>
+</body>
+</html>

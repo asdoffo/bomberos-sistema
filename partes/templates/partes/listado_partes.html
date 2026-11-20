@@ -1,0 +1,110 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}Partes de siniestro — Bomberos Villa María{% endblock %}
+
+{% block estilos %}
+  .cabecera { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.6rem; }
+  .herramientas { display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center; margin-top:1rem; }
+  .pestanas { display:flex; gap:0.3rem; background:#f3f4f6; padding:0.25rem; border-radius:999px; }
+  .pestanas a { padding:0.4rem 0.9rem; border-radius:999px; text-decoration:none; color:var(--gris); font-size:0.88rem; font-weight:600; }
+  .pestanas a.activo { background:#fff; color:var(--rojo); box-shadow:0 1px 2px rgba(0,0,0,0.1); }
+  .buscador { flex:1; min-width:200px; display:flex; gap:0.4rem; }
+  .buscador input { margin-top:0 !important; }
+  .lista a.parte { display:grid; grid-template-columns:auto 1fr auto auto; gap:0.2rem 0.9rem; align-items:center; padding:0.8rem 0.4rem; border-bottom:1px solid var(--borde); text-decoration:none; color:var(--texto); }
+  .lista a.parte:hover { background:#fafafa; }
+  .numero { font-weight:700; font-size:1.05rem; color:var(--rojo); min-width:4.5rem; }
+  .linea2 { color:var(--gris); font-size:0.83rem; }
+  .ver { color:var(--azul); font-size:0.85rem; font-weight:600; white-space:nowrap; }
+  @media (max-width:640px) { .lista a.parte { grid-template-columns:auto 1fr; } .ver { grid-column:2; } }
+  .con-arbol { margin-top:0.8rem; }
+  .migas { font-size:0.9rem; margin-bottom:0.5rem; } .migas a { text-decoration:none; color:var(--gris); } .migas a.activo { color:var(--rojo); font-weight:700; }
+  .carpetas { display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:0.6rem; margin-bottom:1rem; }
+  .carpeta { display:flex; flex-direction:column; gap:0.15rem; padding:0.7rem 0.8rem; border:1px solid var(--borde); border-radius:10px;
+             background:#fff; text-decoration:none; color:var(--texto); transition:background 0.15s, color 0.15s; }
+  .carpeta b { font-size:1.35rem; line-height:1.1; } .carpeta .sub, .carpeta .n { font-size:0.75rem; color:var(--gris); }
+  .carpeta:hover, .carpeta.activa { background:var(--rojo); border-color:var(--rojo); color:#fff; }
+  .carpeta:hover .sub, .carpeta:hover .n, .carpeta.activa .sub, .carpeta.activa .n { color:#fde2e0; }
+  .arbol { font-size:0.88rem; border:1px solid var(--borde); border-radius:10px; padding:0.6rem 0.7rem; background:#fafafa; }
+  .arbol > summary { font-weight:700; cursor:pointer; }
+  .arbol details { margin:0.15rem 0 0.15rem 0.2rem; }
+  .arbol details details { margin-left:0.9rem; }
+  .arbol summary { cursor:pointer; padding:0.15rem 0; }
+  .arbol a { text-decoration:none; color:var(--texto); }
+  .arbol a.activo { color:var(--rojo); font-weight:700; }
+  .arbol .cantidad { color:var(--gris); font-size:0.78rem; }
+  .arbol ul { list-style:none; margin:0.1rem 0 0.2rem 0.9rem; padding:0; }
+  .arbol .raiz { display:block; margin:0.4rem 0 0.2rem 0; }
+  .titulo-fecha { margin:0 0 0.2rem 0; font-size:1.05rem; }
+  @media (max-width:900px) { .con-arbol { grid-template-columns:1fr; } }
+  @media (max-width:640px) { .pestanas { overflow-x:auto; max-width:100%; scrollbar-width:none; } .pestanas a { white-space:nowrap; } }
+{% endblock %}
+
+{% block contenido %}
+<div class="card">
+  <div class="cabecera">
+    <h1 style="margin:0;">Partes de siniestro</h1>
+    {% if perms.partes.add_partesiniestro %}<a class="btn" href="{% url 'crear_parte' %}">Nuevo parte</a>{% endif %}
+  </div>
+
+  {% if demorados %}
+  <div class="msg error" role="alert" style="margin-top:0.8rem;"><span><b>{{ demorados }} parte{{ demorados|pluralize }} sin cerrar hace más de 24 horas.</b>
+    No debería pasar: hay que atenderlo. <a href="?estado=demorados">Ver cuál{{ demorados|pluralize:"es" }}</a></span></div>
+  {% endif %}
+  <div class="herramientas">
+    {% if ve_cerrados %}<nav class="pestanas">
+      <a href="?{% if q %}q={{ q|urlencode }}{% endif %}" class="{% if not filtro %}activo{% endif %}">Por fecha</a>
+      <a href="?estado=abiertos{% if q %}&q={{ q|urlencode }}{% endif %}" class="{% if filtro == 'abiertos' %}activo{% endif %}">Sin cerrar</a>
+      <a href="?estado=por_guardia" class="{% if filtro == 'por_guardia' %}activo{% endif %}">Sin cerrar por guardia</a>
+      <a href="?estado=cerrados{% if q %}&q={{ q|urlencode }}{% endif %}" class="{% if filtro == 'cerrados' %}activo{% endif %}">Cerrados</a>
+    </nav>{% endif %}
+    <form class="buscador" method="get">
+      {% if filtro %}<input type="hidden" name="estado" value="{{ filtro }}">{% endif %}
+      <input type="hidden" name="fecha" value="todas">
+      <input type="search" name="q" value="{{ q }}" placeholder="Buscar por N°, calle, barrio o tipo…" aria-label="Buscar">
+      <button class="btn gris" type="submit" >Buscar</button>
+    </form>
+  </div>
+
+  <div class="con-arbol">
+  <nav class="carpetas-fechas" aria-label="Partes por fecha">
+    <div class="migas">{% for nombre, clave in migas %}<a href="?{% if filtro %}estado={{ filtro }}&{% endif %}fecha={{ clave }}" class="{% if fecha == clave %}activo{% endif %}">{{ nombre }}</a>{% if not forloop.last %} › {% endif %}{% endfor %}
+      · <a href="?{% if filtro %}estado={{ filtro }}{% endif %}" class="{% if es_hoy %}activo{% endif %}">Hoy</a></div>
+    <div class="carpetas">
+      {% for c in carpetas %}<a class="carpeta {% if fecha == c.clave %}activa{% endif %}" href="?{% if filtro %}estado={{ filtro }}&{% endif %}fecha={{ c.clave }}">
+        <span class="sub">{{ c.sub|default:"Año" }}</span><b>{{ c.titulo }}</b><span class="n">{{ c.n }} parte{{ c.n|pluralize }}</span></a>
+      {% empty %}<p class="ayuda">Sin partes cargados.</p>{% endfor %}
+    </div>
+  </nav>
+
+  <div class="lista">
+    <h2 class="titulo-fecha">{{ titulo_fecha }}{% if q %} · búsqueda «{{ q }}»{% endif %} <span class="cantidad" style="color:var(--gris);font-weight:400;font-size:0.85rem;">({{ partes|length }})</span></h2>
+    {% if filtro == "por_guardia" %}
+      {% regroup partes by guardia as grupos %}
+      {% for grupo in grupos %}
+        <h2 style="margin-bottom:0.2rem;">{{ grupo.grouper.apellido }}, {{ grupo.grouper.nombre }} ({{ grupo.list|length }})</h2>
+        {% for p in grupo.list %}{% include "partes/_fila_parte.html" %}{% endfor %}
+      {% empty %}
+        <p class="vacio" style="text-align:center;padding:2rem 0;">No hay partes sin cerrar.</p>
+      {% endfor %}
+    {% else %}
+    {% for p in partes %}
+      {% include "partes/_fila_parte.html" %}
+    {% empty %}
+      <p class="vacio" style="text-align:center;padding:2rem 0;">
+        {% if es_hoy and not q %}Hoy todavía no hay partes. Los de otros días están en los recuadros de arriba.{% elif q or filtro %}No hay partes que coincidan. <a href="?fecha=todas">Ver todos</a>{% else %}No hay partes en esa fecha.{% endif %}
+      </p>
+    {% endfor %}
+    {% endif %}
+  </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  autorefrescar("{% url 'version_partes' %}", "{{ version }}", 45, function () {
+    var busqueda = document.querySelector(".buscador input[type=search]");
+    return document.activeElement !== busqueda && !busqueda.value;
+  });
+</script>
+{% endblock %}

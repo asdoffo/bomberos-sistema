@@ -1,0 +1,426 @@
+{% extends "partes/base.html" %}
+{% load l10n %}
+
+{% block titulo %}Parte {{ parte.numero_correlativo }}/{{ parte.anio }} — Bomberos Villa María{% endblock %}
+
+{% block estilos %}
+  .cabecera { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.5rem; }
+  .numero-grande { font-size:1.7rem; }
+  .pasos { display:flex; margin:1.1rem 0 0.2rem 0; counter-reset:paso; }
+  .paso { flex:1; text-align:center; font-size:0.78rem; color:var(--gris); position:relative; }
+  .paso::before { content:"○"; display:block; width:28px; height:28px; line-height:26px; margin:0 auto 0.25rem auto; border-radius:50%; border:2px solid #d1d5db; background:#fff; font-size:0.9rem; position:relative; z-index:1; }
+  .paso::after { content:""; position:absolute; top:13px; left:-50%; width:100%; height:2px; background:#d1d5db; }
+  .paso:first-child::after { display:none; }
+  .paso.hecho { color:var(--verde); font-weight:600; }
+  .paso.hecho::before { content:"✓"; background:var(--verde); border-color:var(--verde); color:#fff; }
+  .paso.hecho::after { background:var(--verde); }
+  .paso small { display:block; color:var(--gris); font-weight:400; font-size:0.7rem; }
+  .tiempos { display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:0.6rem; margin-top:0.8rem; }
+  .tiempo { background:#f9fafb; border:1px solid var(--borde); border-radius:8px; padding:0.6rem; text-align:center; }
+  .tiempo b { display:block; font-size:1.35rem; }
+  .tiempo small { color:var(--gris); font-size:0.74rem; }
+  .rodado { border:1px solid var(--borde); border-radius:var(--radio); padding:0.7rem 0.9rem; margin-top:0.6rem; }
+  .pendientes { background:#fffbeb; border:1px solid #fcd34d; border-radius:8px; padding:0.7rem 1rem; margin-top:1rem; font-size:0.9rem; }
+  .pendientes ul { margin:0.3rem 0 0 0; padding-left:1.2rem; }
+  .agregar { display:inline-block; margin-top:0.6rem; font-size:0.9rem; }
+  .salida-destacada { display:flex; align-items:center; gap:0.9rem; flex-wrap:wrap; margin-top:1rem; padding:0.8rem 1rem;
+                      border-radius:10px; background:#f9fafb; border:1px solid var(--borde); }
+  .salida-destacada b { font-size:1.8rem; line-height:1; color:var(--rojo); }
+  .marcar { display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.9rem; }
+  .marcar form { flex:1 1 7rem; margin:0; }
+  .marcar button { width:100%; }
+  .salida-guardia { margin-top:1rem; padding:0.9rem 1rem; border:1px solid var(--borde); border-radius:10px; background:#fafafa; }
+  .marcar .hecho { flex:1 1 7rem; text-align:center; padding:0.55rem; border-radius:8px; background:#ecfdf5; color:var(--verde); font-weight:600; font-size:0.9rem; }
+{% endblock %}
+
+{% block contenido %}
+<div class="card">
+  <div class="cabecera">
+    <div>
+      <h1 class="numero-grande">Control de salida N° {{ parte.numero_correlativo }}/{{ parte.anio }}</h1>
+      <div class="subtitulo">{{ parte.tipo }} · {{ parte.motivo }} · {{ parte.ubicacion }}</div>
+    </div>
+    <span class="estado estado-{{ parte.estado_parte.nombre_estado|slugify }}" style="font-size:0.9rem;">{{ parte.estado_parte }}</span>
+  </div>
+
+  <div class="pasos" aria-label="Avance del parte">
+    {% for p in parte.linea_de_tiempo %}<div class="paso {% if p.hecho %}hecho{% endif %}">{{ p.nombre }}
+      {% if p.nota %}<small>{{ p.nota }}</small>{% elif p.hora %}<small>{{ p.fecha|date:"d/m/Y" }} {{ p.hora|time:"H:i" }}</small>{% endif %}</div>{% endfor %}
+  </div>
+
+  {% if parte.minutos_despacho is not None %}
+  <div class="salida-destacada">
+    <b>{{ parte.minutos_despacho }} min</b>
+    <span>desde que se inició el parte ({{ parte.hora_llamada|time:"H:i" }}) hasta que la unidad salió del cuartel ({{ parte.hora_salida|time:"H:i" }}).</span>
+  </div>
+  {% endif %}
+
+  {% if salida %}
+  <form method="post" action="{% url 'marcar_hora' parte.pk 'salida' %}" class="salida-guardia">
+    {% csrf_token %}
+    <h2 style="margin-top:0;">Salida de la unidad</h2>
+    <p class="ayuda" style="margin-top:0;">Antes de marcar la salida: qué unidad sale, quién la autorizó y quiénes van.
+      El personal se puede seguir sumando después, en Completar.</p>
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=salida.form.vehiculo %}
+      {% include "partes/_campo.html" with campo=salida.form.autorizo %}
+    </div>
+    <h3 style="margin:1rem 0 0 0; font-size:0.95rem;">Personal que concurre</h3>
+    {% include "partes/_grilla_personal.html" with campo=salida.personal.integrantes anio=parte.anio datos=salida.personal %}
+    <div class="marcar">
+      <button type="submit" class="btn">Marcar salida ahora</button>
+      <button type="submit" name="guardar" class="btn gris">Guardar sin marcar la salida</button>
+    </div>
+  </form>
+  {% elif not parte.esta_cerrado and corrige and parte.unidad_salio %}
+  <div class="marcar">
+    {% for momento, etiqueta, hora in marcas %}
+      {% if hora %}<span class="hecho">{{ etiqueta }} {{ hora|time:"H:i" }}</span>
+      {% else %}
+      <form method="post" action="{% url 'marcar_hora' parte.pk momento %}">{% csrf_token %}
+        <button type="submit" class="btn {% if forloop.counter > 1 %}secundario{% endif %}">Marcar {{ etiqueta|lower }} ahora</button>
+      </form>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if not parte.esta_cerrado %}
+  <div class="acciones">
+    {% if completa and not ya_completo %}<a class="btn" href="{% url 'completar_parte' parte.pk %}">Completar datos</a>{% endif %}
+    {% if corrige %}
+    <a class="btn {% if not ya_completo %}secundario{% endif %}" href="{% url 'corregir_parte' parte.pk %}">Corregir datos</a>
+    {% elif not completa %}
+    <span class="ayuda">Tu rol (Invitado) solo permite ver el parte.</span>
+    {% elif ya_completo %}
+    <span class="ayuda">Ya enviaste tus datos. Si hay que corregir algo, pedíselo al guardia.</span>
+    {% endif %}
+    {% if user.is_staff %}<a class="btn gris" href="{% url 'admin:partes_partesiniestro_change' parte.pk %}">Admin</a>{% endif %}
+  </div>
+  {% if perms.partes.cerrar_partesiniestro and not problemas_cierre %}
+  <details class="firmar">
+    <summary>Cerrar y firmar el parte</summary>
+    <p class="ayuda" style="margin:0.4rem 0 0 0;">Al cerrar, el parte queda sellado a tu nombre y ya no se modifica.
+      Confirmá con tu contraseña.{% if descargas %} Está descargado en {{ descargas|length }} celular{{ descargas|length|pluralize:"es" }}: si cargaron datos sin señal y no los enviaron, se pierden.{% endif %}</p>
+    <form method="post" action="{% url 'cerrar_parte' parte.pk %}" class="fila-firma">
+      {% csrf_token %}
+      <input type="password" name="clave" required autocomplete="current-password" aria-label="Tu contraseña" placeholder="Tu contraseña">
+      <button type="submit" class="btn">Cerrar y firmar</button>
+    </form>
+  </details>
+  {% endif %}
+  {% if problemas_cierre %}
+  <div class="pendientes">
+    <b>Para poder cerrarlo falta:</b>
+    <ul>{% for p in problemas_cierre %}<li>{{ p }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+  {% else %}
+  {% if firma_cierre %}
+  <div class="sello">
+    <span class="marca-sello">CERRADO</span>
+    <span>Parte cerrado por <b>{{ firma_cierre.firmante }}</b><br>
+      el {{ firma_cierre.fecha|date:"d/m/Y" }} a las {{ firma_cierre.fecha|time:"H:i" }} · Sello <code>{{ firma_cierre.codigo }}</code></span>
+  </div>
+  {% else %}
+  <p class="ayuda" style="margin-top:0.8rem;">Cerrado por {{ parte.cerro }} el {{ parte.fecha_cierre|date:"d/m/Y H:i" }} (antes de las firmas).</p>
+  {% endif %}
+  {% if perms.partes.corregir_cerrado %}
+  <div class="acciones"><a class="btn gris" href="{% url 'corregir_parte' parte.pk %}">Corregir parte cerrado</a></div>
+  <p class="ayuda">Parte cerrado. Como administrador lo podés corregir: hay que poner el motivo y queda registrado.</p>
+  {% else %}
+  <p class="ayuda">Parte cerrado: ya no se modifica, solo se puede ver.</p>
+  {% endif %}
+  {% endif %}
+  {% if perms.partes.emitir_constancia and parte.esta_cerrado %}<p style="margin:0.6rem 0 0 0;"><a href="{% url 'constancia_intervencion' parte.pk %}">Emitir constancia de intervención</a></p>{% endif %}
+  {% if correcciones %}
+  <div class="pendientes">
+    <b>Corregido después del cierre:</b>
+    <ul>{% for c in correcciones %}<li>{{ c.firma.fecha|date:"d/m/Y H:i" }} · {{ c.firma.firmante }} · Sello <code>{{ c.firma.codigo }}</code><br>
+      Motivo: {{ c.motivo }}
+      <ul>{% for campo, antes, despues in c.cambios %}<li>{{ campo }}: <s>{{ antes }}</s> → {{ despues }}</li>{% endfor %}</ul></li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+</div>
+
+{% if completa and not parte.esta_cerrado or envios_con_avisos %}
+<div class="card" id="carga-sin-senal" data-parte="{{ parte.pk }}" data-titulo="{{ parte.numero_correlativo }}/{{ parte.anio }}"
+     data-descargar="{% url 'descargar_parte' parte.pk %}">
+  <h2>Carga sin señal</h2>
+  {% if not parte.esta_cerrado %}
+  <p class="ayuda" style="margin-top:0;">Antes de salir, descargá el parte en el celular: se puede completar sin señal y se envía solo al volver la conexión.</p>
+  <div class="acciones" style="margin-top:0.5rem;">
+    <button type="button" class="btn gris chico" data-accion="descargar">Descargar en este celular</button>
+    <button type="button" class="btn gris chico" data-accion="quitar" hidden>Quitar de este celular</button>
+  </div>
+  <p class="ayuda" data-estado role="status"></p>
+  {% if descargas %}
+  <div class="pendientes">
+    <b>Descargado en el celular de:</b>
+    <ul>{% for d in descargas %}<li>{{ d.usuario.username }}, desde el {{ d.fecha_descarga|date:"d/m H:i" }} ·
+      {% if d.ultima_sincronizacion %}último envío {{ d.ultima_sincronizacion|date:"d/m H:i" }}{% else %}todavía no envió datos{% endif %}</li>{% endfor %}</ul>
+    Si alguien cargó datos sin señal, pueden faltar hasta que vuelva al cuartel.
+  </div>
+  {% endif %}
+  {% endif %}
+  {% if envios_con_avisos %}
+  <div class="pendientes">
+    <b>Datos que se reemplazaron al guardar desde distintos equipos:</b>
+    <ul>{% for e in envios_con_avisos %}<li>{{ e.fecha|date:"d/m H:i" }} ({{ e.usuario.username|default:"?" }}): {{ e.avisos|linebreaksbr }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Llamada</h2>
+  <div class="datos">
+    <div><span>Fecha</span>{{ parte.fecha|date:"d/m/Y" }}</div>
+    <div><span>Llamada Hs.</span>{{ parte.hora_llamada|time:"H:i"|default:"—" }}</div>
+    <div><span>Llamado</span>{{ parte.get_medio_llamado_display }}</div>
+    <div><span>Quién llama</span>{{ parte.nombre_llamante|default:"—" }}</div>
+    {% if parte.telefono_origen %}<div><span>TE de donde llaman</span>{{ parte.telefono_origen }}</div>{% endif %}
+    <div><span>Toque de sirena</span>{{ parte.toque_sirena|yesno:"Sí,No" }}</div>
+    <div><span>Personal de guardia</span>{{ parte.guardia }}</div>
+    <div><span>Personal E-100</span>{{ parte.personal_e100|default:"—" }}</div>
+    <div><span>Autorizó</span>{{ parte.autorizo|default:"—" }}</div>
+  </div>
+
+</div>
+
+<div class="card">
+  <h2>Tipo y ubicación del siniestro</h2>
+  <div class="datos">
+    <div><span>Tipo / motivo</span>{{ parte.tipo }} / {{ parte.motivo }}</div>
+    <div><span>Ubicación</span>{{ parte.ubicacion }}</div>
+    <div><span>Barrio</span>{{ parte.barrio|default:"—" }}</div>
+    <div><span>Referencias</span>{{ parte.referencias|default:"—" }}</div>
+    {% if parte.latitud %}
+    <div><span>Mapa</span><a target="_blank" rel="noopener" href="https://www.google.com/maps?q={{ parte.latitud|unlocalize }},{{ parte.longitud|unlocalize }}">Ver en el mapa</a></div>
+    {% endif %}
+  </div>
+
+</div>
+
+<div class="card">
+  <h2>Registro de movimiento de la unidad</h2>
+  {% if parte.salida_cancelada %}
+    <p class="vacio">La unidad no salió (salida cancelada).</p>
+  {% elif not parte.unidad_salio %}
+    <p class="vacio">Todavía no se marcó la salida{% if parte.vehiculo %} de {{ parte.vehiculo }}{% endif %}{% if parte.autorizo %} (autorizó {{ parte.autorizo }}){% endif %}.</p>
+  {% else %}
+  <div class="datos">
+    <div><span>U N°</span>{{ parte.vehiculo|default:"—" }}</div>
+    <div><span>Salida / llegada / regreso Hs.</span>{{ parte.hora_salida|time:"H:i"|default:"—" }} / {{ parte.hora_llegada|time:"H:i"|default:"—" }} / {{ parte.hora_regreso|time:"H:i"|default:"—" }}</div>
+    <div><span>Km regreso</span>{{ parte.km_regreso|default:"—" }}</div>
+    <div><span>Se solicitó apoyo</span>{% if parte.se_solicito_apoyo %}Sí — unidad {{ parte.unidad_apoyo_numero }}{% else %}No{% endif %}</div>
+    <div><span>Combustible</span>{{ parte.get_combustible_nivel_display|default:"—" }}{% if parte.carga_combustible %} · cargó {{ parte.litros }} l (${{ parte.pesos }}){% endif %}</div>
+  </div>
+  <div class="tiempos">
+    <div class="tiempo"><b>{{ parte.minutos_despacho|default_if_none:"—" }}</b><small>min. hasta la salida</small></div>
+    <div class="tiempo"><b>{{ parte.minutos_desplazamiento|default_if_none:"—" }}</b><small>min. de desplazamiento</small></div>
+    <div class="tiempo"><b>{{ parte.minutos_respuesta|default_if_none:"—" }}</b><small>min. de respuesta total</small></div>
+    <div class="tiempo"><b>{{ parte.minutos_en_servicio|default_if_none:"—" }}</b><small>min. fuera del cuartel</small></div>
+  </div>
+  {% endif %}
+
+</div>
+
+<div class="card">
+  <h2>Personal que concurrió</h2>
+  {% if personal %}
+  <div class="tabla-scroll">
+  <table>
+    <tr><th>N°</th><th>Integrante</th><th>Rango</th><th>Concurrencia</th><th>Participación</th>{% if parte.tipo.se_cobra %}<th>Cobró</th>{% endif %}</tr>
+    {% for pp, merito in personal %}
+    <tr>
+      <td><b>{{ merito|stringformat:"03d"|default:"—" }}</b></td>
+      <td>{{ pp.integrante.apellido }}, {{ pp.integrante.nombre }}</td>
+      <td>{{ pp.rango|default:pp.integrante.rango }}</td>
+      <td>{{ pp.get_tipo_concurrencia_display }}</td>
+      <td>{{ pp.get_tipo_participacion_display }}</td>
+      {% if parte.tipo.se_cobra %}<td>{{ pp.cobro|yesno:"Sí,No" }}</td>{% endif %}
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% else %}<p class="vacio">Sin personal cargado.</p>{% endif %}
+
+</div>
+
+{% if "rodados" in secciones or "damnificados" in secciones or url_cargar and not parte.esta_cerrado %}
+<div class="card">
+  <h2>{% if "rodados" in secciones %}Datos de los vehículos siniestrados y damnificados{% else %}Datos de los damnificados{% endif %}</h2>
+  {% for rodado in rodados %}
+    <div class="rodado">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+        <b>Rodado {{ rodado.rodado_numero }}: {{ rodado.marca }} {{ rodado.modelo }} {% if rodado.dominio %}({{ rodado.dominio }}){% endif %}</b>
+        {% if not parte.esta_cerrado %}<a href="{% url 'damnificados' parte.pk rodado.pk %}">+ Damnificados</a>{% endif %}
+      </div>
+      {% if rodado.seguro %}<div class="ayuda">Seguro: {{ rodado.seguro }}</div>{% endif %}
+      {% if rodado.damnificados.all %}
+      {% include "partes/_tabla_damnificados.html" with damnificados=rodado.damnificados.all %}
+      {% else %}<p class="vacio" style="padding:0.4rem 0;">Sin damnificados cargados.</p>{% endif %}
+    </div>
+  {% empty %}
+    {% if "rodados" in secciones %}<p class="vacio">No hay vehículos siniestrados.</p>
+    {% elif not sin_rodado %}<p class="vacio">No hay damnificados cargados.</p>{% endif %}
+  {% endfor %}
+  {% if sin_rodado %}
+    <div class="rodado">
+      <b>Damnificados sin rodado</b>
+      {% include "partes/_tabla_damnificados.html" with damnificados=sin_rodado %}
+    </div>
+  {% endif %}
+  {% if url_cargar and not parte.esta_cerrado %}
+  <p style="margin-bottom:0;"><a class="agregar" href="{{ url_cargar }}#seccion-rodados">+ Agregar rodado</a> &nbsp;
+    <a class="agregar" href="{{ url_cargar }}#seccion-damnificados">+ Agregar damnificado</a></p>
+  {% endif %}
+
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Policial · Tránsito · Forense · Juzgado</h2>
+  {% if entidades %}
+  <div class="datos">
+    {% for e in entidades %}
+    <div><span>{{ e.tipo_entidad }}</span>Móvil {{ e.numero_movil|default:"—" }} · a cargo: {{ e.a_cargo|default:"—" }}</div>
+    {% endfor %}
+  </div>
+  {% else %}<p class="vacio">Ninguna registrada.</p>{% endif %}
+
+</div>
+
+{% if "incendio" in secciones %}
+<div class="card">
+  <h2>Incendio - Datos damnificado</h2>
+  {% if incendio %}
+  <div class="datos">
+    <div><span>Datos sobre lo dañado</span>{{ incendio.tipo_bien_danado|default:"—" }}</div>
+    <div><span>Damnificado</span>{{ incendio.damnificado_nombre|default:"—" }}{% if incendio.edad %}, {{ incendio.edad }} años{% endif %}{% if incendio.dni %} · DNI {{ incendio.dni }}{% endif %}</div>
+  </div>
+  {% if incendio.descripcion %}<p>{{ incendio.descripcion|linebreaksbr }}</p>{% endif %}
+  {% endif %}
+  {% if not parte.esta_cerrado and completa %}<a class="agregar" href="{% url 'incendio' parte.pk %}">{% if incendio %}Editar datos de incendio{% else %}+ Cargar datos de incendio{% endif %}</a>{% elif not incendio %}<p class="vacio">No corresponde / sin datos.</p>{% endif %}
+
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Negativas a la atención</h2>
+  {% for n in negativas %}
+    <div class="datos"><div><span>{{ n.fecha|date:"d/m/Y" }} · {{ n.get_tipo_firmante_display }}</span>
+      {{ n.nombre_firmante }} (DNI {{ n.dni_firmante }}) — <a href="{% url 'constancia_negativa' n.pk %}">Ver / imprimir constancia</a></div></div>
+  {% empty %}<p class="vacio" style="padding:0.3rem 0;">Ninguna.</p>{% endfor %}
+  {% if not parte.esta_cerrado and completa %}<a class="agregar" href="{% url 'nueva_negativa' parte.pk %}">+ Registrar negativa</a>{% endif %}
+
+</div>
+
+<div class="card">
+  <h2>Fotos</h2>
+  {% if fotos %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0.5rem;">
+    {% for f in fotos %}
+      <a href="{{ f.archivo.url }}" target="_blank" rel="noopener" title="{{ f.descripcion }}">
+        <img src="{{ f.archivo.url }}" alt="{{ f.descripcion|default:'Foto del parte' }}" style="width:100%;height:120px;object-fit:cover;border-radius:6px;">
+      </a>
+    {% endfor %}
+  </div>
+  {% else %}<p class="vacio" style="padding:0.3rem 0;">Sin fotos.</p>{% endif %}
+  {% if not parte.esta_cerrado and completa %}<a class="agregar" href="{% url 'fotos' parte.pk %}">Subir fotos</a>{% endif %}
+
+  {% if parte.observaciones %}
+  <h2>Observaciones</h2>
+  <p>{{ parte.observaciones|linebreaksbr }}</p>
+  {% endif %}
+
+  {% if perms.partes.ver_confidencial and parte.descripcion_confidencial %}
+  <h2>Descripción confidencial</h2>
+  <p style="background:#fdf2f2;padding:0.6rem;border-radius:6px;">{{ parte.descripcion_confidencial|linebreaksbr }}</p>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Lo que se marca desde un celular aparece solo en la PC. No recarga si se está cargando algo en esta pantalla.
+  (function () {
+    var tocado = false;
+    document.addEventListener("input", function () { tocado = true; });
+    autorefrescar("{% url 'version_partes' %}?parte={{ parte.pk }}", "{{ version }}", 20, function () {
+      return !tocado && !document.querySelector("details[open]");
+    });
+  })();
+</script>
+<script>
+  // Descargar el parte en el celular: se guardan sus pantallas para abrirlas sin señal.
+  (function () {
+    var caja = document.getElementById("carga-sin-senal");
+    var botonDescargar = caja && caja.querySelector('[data-accion="descargar"]');
+    if (!botonDescargar) return;
+    var botonQuitar = caja.querySelector('[data-accion="quitar"]');
+    var estado = caja.querySelector("[data-estado]");
+    var parte = Number(caja.dataset.parte);
+
+    if (!("caches" in window) || !("serviceWorker" in navigator)) {
+      botonDescargar.disabled = true;
+      estado.textContent = "Este navegador no permite trabajar sin señal (hace falta abrir el sistema con https).";
+      return;
+    }
+
+    function mostrar(descarga) {
+      botonQuitar.hidden = !descarga;
+      botonDescargar.textContent = descarga ? "Actualizar la copia del celular" : "Descargar en este celular";
+      if (descarga) estado.textContent = "Descargado en este celular el " + new Date(descarga.fecha).toLocaleString("es-AR") + ".";
+    }
+
+    botonDescargar.addEventListener("click", async function () {
+      botonDescargar.disabled = true;
+      estado.textContent = "Descargando...";
+      try {
+        if (await Celular.leer("pendientes", parte)) {
+          throw new Error("Primero hay que enviar lo que está guardado en el celular para este parte.");
+        }
+        var datos = new FormData();
+        var r = await Celular.postear(caja.dataset.descargar, datos);
+        if (!r.ok) throw new Error(r.error);
+        await navigator.serviceWorker.ready;
+        var cache = await caches.open(Celular.CACHE);
+        for (var i = 0; i < r.urls.length; i++) {
+          var pagina = await fetch(r.urls[i], { credentials: "same-origin" });
+          if (!pagina.ok || pagina.redirected) throw new Error("No se pudo guardar la pantalla " + r.urls[i]);
+          await cache.put(r.urls[i], pagina);
+        }
+        var descarga = { parte: parte, titulo: caja.dataset.titulo, urls: r.urls, fecha: new Date().toISOString() };
+        await Celular.guardar("descargas", descarga);
+        if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+        mostrar(descarga);
+      } catch (e) {
+        estado.textContent = "No se pudo descargar: " + (e.message || e);
+      } finally {
+        botonDescargar.disabled = false;
+      }
+    });
+
+    botonQuitar.addEventListener("click", async function () {
+      if (await Celular.leer("pendientes", parte)) {
+        estado.textContent = "Hay datos de este parte guardados en el celular sin enviar: primero tienen que enviarse.";
+        return;
+      }
+      var descarga = await Celular.leer("descargas", parte);
+      var datos = new FormData();
+      datos.append("quitar", "1");
+      try { await Celular.postear(caja.dataset.descargar, datos); } catch (e) { /* se anota la próxima vez */ }
+      var cache = await caches.open(Celular.CACHE);
+      if (descarga) for (var i = 0; i < descarga.urls.length; i++) await cache.delete(descarga.urls[i]);
+      await Celular.borrar("descargas", parte);
+      mostrar(null);
+      estado.textContent = "Se quitó de este celular.";
+    });
+
+    Celular.leer("descargas", parte).then(mostrar).catch(function () {});
+  })();
+</script>
+{% endblock %}

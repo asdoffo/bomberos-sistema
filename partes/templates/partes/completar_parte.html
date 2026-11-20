@@ -1,0 +1,492 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}{% if corregir %}Corregir{% else %}Completar{% endif %} control de salida {{ parte.numero_correlativo }}/{{ parte.anio }}{% endblock %}
+
+{% block estilos %}
+  .tabla-entidades { width:100%; border-collapse:collapse; }
+  .tabla-entidades td, .tabla-entidades th { padding:0.3rem 0.4rem; border-bottom:1px solid #f3f4f6; text-align:left; vertical-align:middle; }
+  .tabla-entidades th { font-size:0.75rem; color:var(--gris); font-weight:600; }
+  .tabla-entidades input[type=text] { width:100%; }
+  .lo-danado { display:flex; flex-wrap:wrap; gap:0.4rem 1rem; }
+  .lo-danado label { font-weight:400; display:flex; gap:0.3rem; align-items:center; }
+  .lo-danado div { display:contents; }
+  .encabezado-planilla { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; align-items:baseline; }
+{% endblock %}
+
+{% block contenido %}
+<form method="post" novalidate id="form-completar" {% if correccion %}data-solo-con-senal="1"{% endif %} data-parte="{{ parte.pk }}" data-pagina="{{ pagina }}"
+      data-titulo="{{ parte.numero_correlativo }}/{{ parte.anio }}" data-con-datos="{{ con_datos|join:',' }}" data-rechazado="{{ envio_rechazado }}"
+      data-sincronizar="{% url 'sincronizar_parte' parte.pk %}" data-sincronizar-foto="{% url 'sincronizar_foto' parte.pk %}">
+  {% csrf_token %}
+  <input type="hidden" name="_base" value="{{ base_original }}">
+  <input type="hidden" name="_envio" value="">
+  {% if corregir %}<input type="hidden" name="_modo" value="corregir">{% endif %}
+  {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+
+  <div class="card">
+    <div class="encabezado-planilla">
+      <h1>{% if corregir %}Corregir datos · {% endif %}Control de salida N° {{ parte.numero_correlativo }}/{{ parte.anio }}</h1>
+      <span class="ayuda">Fecha {{ parte.fecha|date:"d/m/Y" }} · Llamada {{ parte.hora_llamada|time:"H:i" }} Hs. · Personal de guardia: {{ parte.guardia }}</span>
+    </div>
+    <p style="margin:0.4rem 0 0 0;"><a href="{% url 'detalle_parte' parte.pk %}">Ver el detalle del parte</a></p>
+    {% if not correccion %}<p class="ayuda" style="margin-bottom:0;">Se puede guardar las veces que haga falta: nada es obligatorio hasta cerrar el parte.
+      Sin señal, lo guardado queda en el celular y se envía solo al volver la conexión.</p>{% endif %}
+    {% if not corrige %}<div class="msg info" style="margin:0.6rem 0 0 0;">Se envía una sola vez: revisá todo antes de guardar. Después, las correcciones las hace el guardia.</div>{% endif %}
+    {% if not parte.salida_resuelta %}<div class="msg warning" style="margin:0.6rem 0 0 0;">Todavía no se marcó la salida de la unidad.
+      {% if corrige %}Marcala en el <a href="{% url 'detalle_parte' parte.pk %}">detalle del parte</a> (unidad, autorizó y hora de salida);{% else %}La marca el guardia;{% endif %}
+      sin eso el parte no se puede cerrar.</div>{% endif %}
+    {% if correccion %}
+    <div class="msg warning" style="margin:0.8rem 0 0 0; display:block;">
+      <b>Este parte ya está cerrado.</b> La corrección queda registrada con tu nombre, el motivo y qué datos cambiaron;
+      el sello del cierre no se modifica. Hace falta conexión (no se guarda en el celular).
+      <div class="campos" style="margin-top:0.6rem;">
+        <div class="campo-ancho">{% include "partes/_campo.html" with campo=correccion.motivo_correccion %}</div>
+        {% include "partes/_campo.html" with campo=correccion.clave %}
+      </div>
+    </div>
+    {% endif %}
+    <p id="estado-guardado" class="ayuda" role="status" style="margin-bottom:0; font-weight:600;"></p>
+    {% if form.non_field_errors %}<div class="msg error" style="margin-top:0.8rem;">{{ form.non_field_errors }}</div>{% endif %}
+
+    {% if form.autorizo %}
+    <div class="campos">
+      {% if form.medio_llamado %}
+      {% include "partes/_campo.html" with campo=form.toque_sirena %}
+      {% include "partes/_campo.html" with campo=form.medio_llamado %}
+      <div class="telefono" data-mostrar-si="medio_llamado=telefonico">
+        {% include "partes/_campo.html" with campo=form.caracteristica %}
+        {% include "partes/_campo.html" with campo=form.telefono_numero %}
+      </div>
+      {% include "partes/_campo.html" with campo=form.nombre_llamante %}
+      {% endif %}
+      {% include "partes/_campo.html" with campo=form.autorizo %}
+      {% if form.salida_cancelada %}{% include "partes/_campo.html" with campo=form.salida_cancelada %}{% endif %}
+    </div>
+    {% if form.hora_salida %}
+    <div class="campos" data-mostrar-si-no="salida_cancelada">
+      {% include "partes/_campo.html" with campo=form.hora_salida %}
+      {% include "partes/_campo.html" with campo=form.hora_llegada %}
+      {% include "partes/_campo.html" with campo=form.hora_regreso %}
+    </div>
+    {% endif %}
+    {% if form.salida_cancelada %}<p class="ayuda" data-mostrar-si="salida_cancelada">Salida cancelada: los horarios y el km quedan vacíos.</p>{% endif %}
+    {% endif %}
+    {% if not form.hora_salida %}
+    <p class="ayuda" style="margin-bottom:0;">{% if not form.medio_llamado %}Llamado {{ parte.get_medio_llamado_display|lower }}{% if parte.telefono_origen %} ({{ parte.telefono_origen }}){% endif %}{% if parte.nombre_llamante %}, llamó {{ parte.nombre_llamante }}{% endif %}{% if parte.toque_sirena %}, con toque de sirena{% endif %}.
+      {% endif %}Salida {{ parte.hora_salida|time:"H:i"|default:"—" }} · Llegada {{ parte.hora_llegada|time:"H:i"|default:"—" }} · Regreso {{ parte.hora_regreso|time:"H:i"|default:"—" }} Hs.
+      {% if corrige %}Los datos del llamado no se cambian acá y las horas se marcan con los botones del detalle;
+      si algo está mal, usá <a href="{% url 'corregir_parte' parte.pk %}">Corregir datos</a>.{% else %}Los horarios, la unidad y el combustible los carga el Personal de guardia.{% endif %}</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Tipo y ubicación del siniestro</h2>
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.tipo %}
+      {% include "partes/_campo.html" with campo=form.ubicacion_calle %}
+      {% include "partes/_campo.html" with campo=form.ubicacion_numero %}
+      {% include "partes/_campo.html" with campo=form.ubicacion_esquina %}
+      {% include "partes/_campo.html" with campo=form.motivo %}
+      {% include "partes/_campo.html" with campo=form.referencias %}
+      {% include "partes/_campo.html" with campo=form.barrio %}
+    </div>
+  </div>
+
+  <div class="card" data-seccion="rodados" id="seccion-rodados">
+    <h2>Datos de los vehículos siniestrados</h2>
+    {% include "partes/_formset.html" with formset=rodados nombre="rodado" %}
+  </div>
+
+  <div class="card" data-seccion="damnificados" id="seccion-damnificados">
+    <h2>Datos de los damnificados</h2>
+    <div class="ayuda">En Rodado N° aparecen los rodados cargados arriba. Si la persona no iba en un rodado, dejá "Sin rodado".</div>
+    {% include "partes/_formset.html" with formset=damnificados nombre="damnificado" fila="partes/_fila_damnificado.html" %}
+  </div>
+
+  <div class="card" data-seccion="incendio">
+    <h2>Incendio - Datos damnificado</h2>
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=incendio.damnificado_nombre %}
+      {% include "partes/_campo.html" with campo=incendio.edad %}
+      {% include "partes/_campo.html" with campo=incendio.dni %}
+    </div>
+    <label style="margin-top:0.8rem;">{{ incendio.lo_danado.label }}</label>
+    <div class="lo-danado">{{ incendio.lo_danado }}</div>
+    <div class="campos">{% include "partes/_campo.html" with campo=incendio.descripcion %}</div>
+  </div>
+
+  <div class="card">
+    <h2>Apoyo</h2>
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.se_solicito_apoyo %}
+      <div data-mostrar-si="se_solicito_apoyo">{% include "partes/_campo.html" with campo=form.unidad_apoyo_numero %}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Policial · Tránsito · Forense · Juzgado</h2>
+    <table class="tabla-entidades">
+      <tr><th></th><th>N° de móvil</th><th>A cargo</th></tr>
+      {% for intervino, movil, cargo in entidades.renglones %}
+      <tr>
+        <td><label style="font-weight:600; display:flex; gap:0.4rem; align-items:center;">{{ intervino }} {{ intervino.label }}</label></td>
+        <td>{{ movil }}</td>
+        <td>{{ cargo }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    <div class="ayuda">Con anotar el N° de móvil o quién estaba a cargo ya queda marcado.</div>
+  </div>
+
+  {% if form.vehiculo %}
+  <div class="card">
+    <h2>Unidad y combustible</h2>
+    <div class="campos" data-mostrar-si-no="salida_cancelada">
+      {% include "partes/_campo.html" with campo=form.vehiculo %}
+      {% include "partes/_campo.html" with campo=form.km_regreso %}
+    </div>
+    <div class="ayuda" id="km-actual"></div>
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.combustible_nivel %}
+      {% include "partes/_campo.html" with campo=form.carga_combustible %}
+    </div>
+    <div class="campos" data-mostrar-si="carga_combustible">
+      {% include "partes/_campo.html" with campo=form.litros %}
+      {% include "partes/_campo.html" with campo=form.pesos %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <h2>Personal que concurrió</h2>
+    {% include "partes/_grilla_personal.html" with campo=personal.integrantes anio=parte.anio datos=personal %}
+    <div class="campos">{% include "partes/_campo.html" with campo=form.personal_e100 %}</div>
+  </div>
+
+  <div class="card">
+    <h2>Fotos del hecho</h2>
+    <label for="fotos-celular">Sacar o elegir fotos</label>
+    <input type="file" id="fotos-celular" accept="image/*" multiple>
+    <div class="ayuda">Quedan guardadas en el celular y se suben solas cuando hay señal.</div>
+    <div id="fotos-estado" class="ayuda" role="status"></div>
+  </div>
+
+  <div class="card">
+    <h2>Observaciones</h2>
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.observaciones %}
+      {% if form.descripcion_confidencial %}{% include "partes/_campo.html" with campo=form.descripcion_confidencial %}{% endif %}
+    </div>
+    <p style="margin:1rem 0 0 0;">
+      <button type="button" class="btn gris chico" onclick="cargarGps()">Guardar mi ubicación GPS</button>
+      <span id="gps-estado" class="ayuda">{% if parte.latitud %}Ya hay una ubicación guardada.{% endif %}</span>
+    </p>
+  </div>
+
+  <div class="barra-guardar">
+    <button type="submit" class="btn">Guardar</button>
+    <button type="submit" name="seguir" class="btn secundario">Guardar y volver a Partes</button>
+    <a class="btn gris" href="{% url 'detalle_parte' parte.pk %}">Cancelar</a>
+  </div>
+</form>
+<datalist id="calles-villa-maria">{% for c in calles %}<option value="{{ c }}">{% endfor %}</datalist>
+<datalist id="barrios-villa-maria">{% for b in barrios %}<option value="{{ b }}">{% endfor %}</datalist>
+{% include "partes/_listas_damnificado.html" %}
+{{ km_moviles|json_script:"km-moviles" }}
+{{ tipos|json_script:"datos-tipos" }}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Muestra el km actual del móvil elegido, para no equivocarse con el de regreso.
+  (function () {
+    var kms = JSON.parse(document.getElementById("km-moviles").textContent);
+    var select = document.getElementById("id_vehiculo");
+    var aviso = document.getElementById("km-actual");
+    var regreso = document.getElementById("id_km_regreso");
+    if (!select) return;  // la unidad la carga el guardia
+    function mostrar() {
+      var km = kms[select.value];
+      aviso.textContent = km !== undefined ? "Último km anotado del móvil: " + km.toLocaleString("es-AR") + " — el de regreso tiene que ser mayor." : "";
+      if (regreso) regreso.min = km !== undefined ? km + 1 : 0;
+    }
+    select.addEventListener("change", mostrar);
+    mostrar();
+  })();
+
+  // Rodados: 3 lugares de entrada y "Agregar rodado" para más. El N° se pone solo al escribir
+  // en un lugar vacío. En cada damnificado, Rodado N° ofrece los rodados cargados arriba.
+  (function () {
+    var rodados = document.querySelector('[data-formset="rodados"]');
+    var damnificados = document.querySelector('[data-formset="damnificados"]');
+    if (!rodados || !damnificados) return;
+    var MAXIMO = {{ maximo_rodados }};
+    function numeroDe(fila) { return fila.querySelector('select[name$="-rodado_numero"]'); }
+    function tieneDatos(fila) {
+      return !fila.classList.contains("nueva") || Array.prototype.some.call(
+        fila.querySelectorAll('input[type=text], textarea'), function (c) { return c.value.trim(); });
+    }
+    function cargados() {
+      var lista = {};
+      rodados.querySelectorAll(".fila-form").forEach(function (fila) {
+        var numero = numeroDe(fila);
+        var quitar = fila.querySelector('input[name$="-DELETE"]');
+        if (!numero || !numero.value || (quitar && quitar.checked) || !tieneDatos(fila)) return;
+        var texto = ["marca", "modelo", "dominio"].map(function (c) {
+          var campo = fila.querySelector('[name$="-' + c + '"]');
+          return campo ? campo.value.trim() : "";
+        }).filter(Boolean).join(" ");
+        lista[numero.value] = numero.value + "°" + (texto ? " - " + texto : "");
+      });
+      return lista;
+    }
+    function numerarAlEscribir(evento) {
+      var fila = evento.target.closest(".fila-form");
+      var numero = fila && numeroDe(fila);
+      if (!numero || numero.value || evento.target === numero || !tieneDatos(fila)) return;
+      var usados = Array.prototype.map.call(rodados.querySelectorAll('select[name$="-rodado_numero"]'),
+                                            function (s) { return s.value; });
+      for (var n = 1; n <= MAXIMO; n++) {
+        if (usados.indexOf(String(n)) === -1) { numero.value = String(n); bloquearRepetidos(); return; }
+      }
+    }
+    // Un N° de rodado elegido en una fila no se ofrece en las demás (10/11). Los damnificados no
+    // tienen esta restricción: varios pueden ir en el mismo rodado.
+    function bloquearRepetidos() {
+      var selects = Array.prototype.filter.call(rodados.querySelectorAll('select[name$="-rodado_numero"]'),
+        function (s) {
+          var quitar = s.closest(".fila-form").querySelector('input[name$="-DELETE"]');
+          return !(quitar && quitar.checked);
+        });
+      selects.forEach(function (select) {
+        var otros = selects.filter(function (s) { return s !== select && s.value; })
+                           .map(function (s) { return s.value; });
+        Array.prototype.forEach.call(select.options, function (o) {
+          o.disabled = Boolean(o.value) && otros.indexOf(o.value) !== -1;
+        });
+      });
+    }
+    function actualizar() {
+      bloquearRepetidos();
+      var lista = cargados();
+      var hay = Object.keys(lista).length > 0;
+      damnificados.querySelectorAll('select[name$="-rodado_numero"]').forEach(function (select) {
+        Array.prototype.forEach.call(select.options, function (o) {
+          if (!o.value) return;  // "Sin rodado"
+          if (!o.dataset.original) o.dataset.original = o.textContent;
+          var cargado = lista[o.value];
+          o.textContent = cargado || o.dataset.original + " (sin cargar arriba)";
+          // Con rodados cargados, solo se ofrecen esos (y el que ya estaba elegido).
+          o.hidden = hay && !cargado && o.value !== select.value;
+        });
+      });
+    }
+    rodados.addEventListener("input", function (e) { numerarAlEscribir(e); actualizar(); });
+    rodados.addEventListener("change", actualizar);
+    // (setTimeout: la fila nueva la agrega base.html después de este aviso).
+    damnificados.querySelector("[data-agregar]").addEventListener("click", function () { setTimeout(actualizar); });
+    rodados.querySelector("[data-agregar]").addEventListener("click", function () { setTimeout(actualizar); });
+    actualizar();
+  })();
+
+  // Bloques que se ven solo cuando la casilla está destildada (si la casilla no está, se ven).
+  document.addEventListener("change", function () {
+    document.querySelectorAll("[data-mostrar-si-no]").forEach(function (el) {
+      var c = document.querySelector('input[name$="' + el.dataset.mostrarSiNo + '"]');
+      el.hidden = !!(c && c.checked);
+    });
+  });
+  document.dispatchEvent(new Event("change"));
+
+  // Carga sin señal (ver Celular en base.html y partes/offline.py).
+  // _base guarda cómo estaba el parte al abrir la pantalla: el servidor aplica solo lo que cambió acá.
+  document.addEventListener("DOMContentLoaded", async function () {
+    var form = document.getElementById("form-completar");
+    var parte = Number(form.dataset.parte);
+    var base = form.elements["_base"];
+    var envio = form.elements["_envio"];
+    var estado = document.getElementById("estado-guardado");
+    Celular.noEnviar(parte);  // hasta saber si esta pantalla tiene datos del celular
+
+    function pares() {
+      return Array.from(new FormData(form)).filter(function (par) {
+        return typeof par[1] === "string" && par[0] !== "_base" && par[0] !== "csrfmiddlewaretoken";
+      });
+    }
+
+    // Las filas agregadas en esta pantalla llevan un UUID propio: si el guardado se manda dos veces, no se duplican.
+    function marcarFilasNuevas() {
+      form.querySelectorAll("[data-formset]").forEach(function (contenedor) {
+        var prefijo = contenedor.dataset.formset;
+        var iniciales = parseInt(form.elements[prefijo + "-INITIAL_FORMS"].value, 10);
+        var total = parseInt(form.elements[prefijo + "-TOTAL_FORMS"].value, 10);
+        for (var i = iniciales; i < total; i++) {
+          var nombre = prefijo + "-" + i + "-uuid_local";
+          if (form.elements[nombre]) continue;
+          var oculto = document.createElement("input");
+          oculto.type = "hidden"; oculto.name = nombre; oculto.value = Celular.nuevoId();
+          form.appendChild(oculto);
+        }
+      });
+    }
+
+    // Vuelve a poner en la pantalla lo que se había guardado en el celular.
+    function restaurar(pendiente) {
+      var valores = new Map();
+      pendiente.pares.forEach(function (par) {
+        if (!valores.has(par[0])) valores.set(par[0], []);
+        valores.get(par[0]).push(par[1]);
+      });
+      form.querySelectorAll("[data-formset]").forEach(function (contenedor) {
+        var prefijo = contenedor.dataset.formset;
+        var total = form.elements[prefijo + "-TOTAL_FORMS"];
+        var deseado = parseInt((valores.get(prefijo + "-TOTAL_FORMS") || ["0"])[0], 10);
+        var boton = contenedor.querySelector("[data-agregar]");
+        while (boton && parseInt(total.value, 10) < deseado) boton.click();
+      });
+      valores.forEach(function (lista, nombre) {
+        if (/-uuid_local$/.test(nombre) && !form.elements[nombre]) {
+          var oculto = document.createElement("input");
+          oculto.type = "hidden"; oculto.name = nombre;
+          form.appendChild(oculto);
+        }
+      });
+      Array.from(form.elements).forEach(function (campo) {
+        if (!campo.name || campo.name === "csrfmiddlewaretoken" || campo.name === "_envio" ||
+            campo.type === "file" || campo.type === "submit" || campo.type === "button") return;
+        var lista = valores.get(campo.name) || [];
+        if (campo.type === "checkbox" || campo.type === "radio") campo.checked = lista.indexOf(campo.value) !== -1;
+        else if (campo.multiple) Array.from(campo.options).forEach(function (o) { o.selected = lista.indexOf(o.value) !== -1; });
+        else if (lista.length) campo.value = lista[0];
+        else if (campo.type !== "hidden") campo.value = "";
+      });
+      document.dispatchEvent(new Event("change"));
+      window.scrollTo(0, 0);
+    }
+
+    if (!base.value) base.value = JSON.stringify(pares());
+    envio.value = Celular.nuevoId();
+
+    var pendiente = null;
+    try { pendiente = await Celular.leer("pendientes", parte); } catch (e) { /* sin IndexedDB */ }
+    if (pendiente && pendiente.envio === form.dataset.rechazado) {
+      // El servidor acaba de mostrar los errores de ese guardado: lo que vale es esta pantalla.
+      await Celular.borrar("pendientes", parte);
+      pendiente = null;
+    }
+    if (!pendiente || pendiente.pagina !== form.dataset.pagina) Celular.noEnviar(null);
+    if (pendiente && pendiente.pagina === form.dataset.pagina) {
+      // Es la misma pantalla en la que se cargó (copia del celular): se sigue desde ahí.
+      restaurar(pendiente);
+      estado.textContent = "Mostrando lo guardado en el celular" +
+        (pendiente.error ? ". No se pudo enviar: " + pendiente.error : ", todavía sin enviar.");
+    } else if (pendiente && navigator.onLine) {
+      estado.textContent = "Enviando lo que estaba guardado en el celular...";
+      await Celular.sincronizar();
+      var sigue = await Celular.leer("pendientes", parte);
+      if (!sigue) { location.reload(); return; }
+      estado.innerHTML = "";
+      estado.append("No se pudieron enviar los datos guardados en el celular: " + (sigue.error || "sin señal") + " ");
+      var enlace = document.createElement("a");
+      enlace.href = location.pathname + "?sin_conexion=1";
+      enlace.textContent = "Abrir lo guardado para corregirlo";
+      estado.appendChild(enlace);
+    }
+
+    var enviandoAlServidor = false;
+    form.addEventListener("submit", async function (evento) {
+      if (enviandoAlServidor || form.dataset.soloConSenal) return;  // corrección de un cerrado: va directo, sin copia
+      evento.preventDefault();
+      // DNI, edad, teléfono...: se controlan acá también, porque sin señal el servidor no los ve.
+      var invalido = Array.from(form.elements).find(function (c) { return c.willValidate && !c.checkValidity(); });
+      if (invalido) {
+        invalido.reportValidity();
+        estado.textContent = "Revisá el campo marcado: " + (invalido.title || invalido.validationMessage);
+        return;
+      }
+      marcarFilasNuevas();
+      try {
+        await Celular.guardar("pendientes", {
+          parte: parte, envio: envio.value, pagina: form.dataset.pagina, titulo: form.dataset.titulo,
+          url: form.dataset.sincronizar, pares: pares().concat([["_base", base.value]]),
+          guardado: new Date().toISOString(), error: null,
+        });
+      } catch (e) {
+        if (!navigator.onLine) { estado.textContent = "No se pudo guardar en el celular: " + e; return; }
+      }
+      cambiosSinGuardar = false;
+      estado.textContent = "Guardando...";
+      if (await Celular.hayConexion()) {
+        // Con señal se guarda como siempre; la copia del celular se borra cuando el servidor confirma.
+        var token = Celular.csrf();
+        if (token) form.elements["csrfmiddlewaretoken"].value = token;
+        enviandoAlServidor = true;
+        form.requestSubmit(evento.submitter || undefined);
+        return;
+      }
+      Celular.noEnviar(parte);
+      envio.value = Celular.nuevoId();  // el próximo guardado es otro envío
+      estado.textContent = "Guardado en el celular a las " + new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false }) +
+        ". Se envía solo cuando vuelva la señal.";
+      Celular.mostrarEstado();
+      window.scrollTo(0, 0);
+    });
+
+    // Al volver la señal con esta pantalla abierta, lo guardado en el celular se envía solo.
+    // Si después se cargó algo más sin guardar, se espera al próximo Guardar para no mandarlo a medias.
+    var cambiosSinGuardar = false;
+    form.addEventListener("input", function () { cambiosSinGuardar = true; });
+    form.addEventListener("change", function () { cambiosSinGuardar = true; });
+    async function alVolverLaSenal() {
+      if (enviandoAlServidor) return;
+      var guardado = await Celular.leer("pendientes", parte);
+      if (!guardado || guardado.pagina !== form.dataset.pagina || !(await Celular.hayConexion())) return;
+      if (cambiosSinGuardar) {
+        estado.textContent = "Volvió la señal: tocá Guardar para enviar también lo último que cargaste.";
+        return;
+      }
+      estado.textContent = "Volvió la señal: enviando lo guardado...";
+      form.requestSubmit(form.querySelector(".barra-guardar button[type=submit]:not([name])"));
+    }
+    window.addEventListener("online", alVolverLaSenal);
+    setInterval(alVolverLaSenal, 30000);  // en el celular a veces vuelve internet sin que el navegador avise
+
+    // Fotos: quedan en el celular y se suben cuando hay señal.
+    var entradaFotos = document.getElementById("fotos-celular");
+    var estadoFotos = document.getElementById("fotos-estado");
+    async function contarFotos() {
+      var fotos = (await Celular.todos("fotos")).filter(function (f) { return f.parte === parte; });
+      estadoFotos.textContent = fotos.length
+        ? (fotos.length === 1 ? "1 foto guardada" : fotos.length + " fotos guardadas") + " en el celular, sin enviar todavía."
+        : "";
+    }
+    entradaFotos.addEventListener("change", async function () {
+      var archivos = Array.from(entradaFotos.files);
+      for (var i = 0; i < archivos.length; i++) {
+        var archivo = archivos[i];
+        await Celular.guardar("fotos", {
+          id: Celular.nuevoId(), parte: parte, titulo: form.dataset.titulo, url: form.dataset.sincronizarFoto,
+          archivo: archivo, nombre: archivo.name || "foto.jpg",
+          fecha: new Date(archivo.lastModified || Date.now()).toISOString(), error: null,
+        });
+      }
+      entradaFotos.value = "";
+      await contarFotos();
+      await Celular.sincronizar();
+      await contarFotos();
+    });
+    contarFotos();
+  });
+
+  function cargarGps() {
+    var estado = document.getElementById("gps-estado");
+    if (!navigator.geolocation) { estado.textContent = "Este dispositivo no tiene GPS disponible."; return; }
+    estado.textContent = "Buscando ubicación...";
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      document.getElementById("{{ form.latitud.id_for_label }}").value = pos.coords.latitude.toFixed(6);
+      document.getElementById("{{ form.longitud.id_for_label }}").value = pos.coords.longitude.toFixed(6);
+      estado.textContent = "Ubicación tomada. Se guarda al presionar Guardar.";
+    }, function () { estado.textContent = "No se pudo obtener la ubicación (en la PC necesita HTTPS)."; });
+  }
+</script>
+{% endblock %}

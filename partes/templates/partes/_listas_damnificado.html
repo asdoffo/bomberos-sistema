@@ -1,0 +1,5 @@
+{# Sugerencias de los campos del damnificado: localidad, provincia y médicos que ya recibieron. #}
+<datalist id="localidades">{% for l in localidades %}<option value="{{ l }}">{% endfor %}</datalist>
+<datalist id="provincias">{% for p in provincias %}<option value="{{ p }}">{% endfor %}</datalist>
+<datalist id="medicos">{% for m in medicos %}<option value="{{ m.nombre }}">{% endfor %}</datalist>
+{{ medicos|json_script:"datos-medicos" }}

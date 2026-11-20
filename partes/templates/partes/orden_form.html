@@ -1,0 +1,44 @@
+{% extends "partes/base.html" %}
+{% block titulo %}{% if orden.pk %}Corregir {{ orden }}{% else %}Nueva orden de entrega{% endif %}{% endblock %}
+{% block contenido %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="card">
+    <h1>{% if orden.pk %}Corregir {{ orden }}{% else %}Nueva orden de entrega{% endif %}</h1>
+    <div class="campos">
+      {% include "partes/_campo.html" with campo=form.fecha %}
+      {% include "partes/_campo.html" with campo=form.movimiento %}
+      {% include "partes/_campo.html" with campo=form.calidad %}
+      {% include "partes/_campo.html" with campo=form.calidad_otro %}
+      {% include "partes/_campo.html" with campo=form.por_orden %}
+      {% include "partes/_campo.html" with campo=form.origen %}
+      {% include "partes/_campo.html" with campo=form.destino %}
+    </div>
+    <h2>Detalle de los elementos</h2>
+    {{ elementos.management_form }}
+    <div class="tabla-scroll"><table>
+      <tr><th>Cant.</th><th>Descripción del elemento</th><th>Estado / observaciones</th><th>Quitar</th></tr>
+      {% for f in elementos %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}
+        <td style="width:6rem;">{{ f.cantidad }}</td><td>{{ f.descripcion }}{{ f.descripcion.errors }}</td><td>{{ f.estado }}</td>
+        <td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td></tr>{% endfor %}
+    </table></div>
+    <p class="ayuda">Los renglones vacíos no se guardan. Para más renglones, guardá y volvé a corregir.</p>
+    <div class="campos"><div class="campo-ancho">{% include "partes/_campo.html" with campo=form.motivo %}</div></div>
+  </div>
+  <div class="card">
+    <h2>Entregado por (Cuerpo de Bomberos)</h2>
+    <div class="campos">{% include "partes/_campo.html" with campo=form.entregado_por %}{% include "partes/_campo.html" with campo=form.cargo_entrega %}</div>
+    <h2>Quien retira</h2>
+    <div class="campos">{% include "partes/_campo.html" with campo=form.retira_nombre %}{% include "partes/_campo.html" with campo=form.retira_dni %}
+      {% include "partes/_campo.html" with campo=form.retira_telefono %}{% include "partes/_campo.html" with campo=form.retira_direccion %}</div>
+    <h2>Autoriza el retiro</h2>
+    <div class="campos">{% include "partes/_campo.html" with campo=form.autoriza %}{% include "partes/_campo.html" with campo=form.cargo_autoriza %}</div>
+    <h2>Devuelto</h2>
+    <div class="campos">{% include "partes/_campo.html" with campo=form.fecha_devolucion %}{% include "partes/_campo.html" with campo=form.recibido_por %}
+      {% include "partes/_campo.html" with campo=form.estado_devolucion %}
+      <div class="campo-ancho">{% include "partes/_campo.html" with campo=form.novedades %}</div></div>
+  </div>
+  <div class="barra-guardar"><button type="submit" class="btn">Guardar</button>
+    <a class="btn gris" href="{% if orden.pk %}{% url 'detalle_orden' orden.pk %}{% else %}{% url 'ordenes_entrega' %}{% endif %}">Cancelar</a></div>
+</form>
+{% endblock %}

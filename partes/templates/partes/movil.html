@@ -1,0 +1,72 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}{{ movil }} — Bomberos Villa María{% endblock %}
+
+{% block contenido %}
+<p style="margin:0 0 0.6rem 0;"><a href="{% url 'moviles' %}">Volver a Móviles</a></p>
+
+<div class="card">
+  <h1 style="margin-bottom:0.2rem;">Móvil {{ movil.legajo }}</h1>
+  <div class="subtitulo">{{ movil.tipo_vehiculo }} · {{ movil.marca }} {{ movil.modelo }} ·
+    {% if movil.dado_de_baja %}De baja{% elif movil.en_servicio %}En servicio{% else %}Fuera de servicio{% endif %}</div>
+  <div class="datos" style="margin-top:1rem;">
+    <div><span>Dominio</span>{{ movil.patente|default:"—" }}</div>
+    <div><span>Año</span>{{ movil.anio|default:"—" }}</div>
+    <div><span>Combustible</span>{{ movil.combustible }}</div>
+    <div><span>Kilometraje actual</span>{{ movil.kilometraje_actual }}</div>
+    <div><span>Vencimiento de la verificación</span>{{ movil.fecha_vto_verificacion|date:"d/m/Y"|default:"—" }}</div>
+  </div>
+  <div class="acciones" style="margin-top:1rem;">
+    {% if perms.partes.change_vehiculo %}
+    <a class="btn gris" href="{% url 'editar_movil' movil.pk %}">Editar</a>
+    <form method="post" action="{% url 'baja_movil' movil.pk %}" style="margin:0;">{% csrf_token %}
+      <button type="submit" class="btn gris">{% if movil.dado_de_baja %}Reactivar{% else %}Dar de baja{% endif %}</button>
+    </form>
+    {% endif %}
+    {% if perms.partes.delete_vehiculo and not movil.tiene_historial %}
+    <form method="post" action="{% url 'quitar_movil' movil.pk %}" style="margin:0;" onsubmit="return confirm('¿Quitar este móvil?');">{% csrf_token %}
+      <button type="submit" class="btn gris">Quitar</button>
+    </form>
+    {% endif %}
+  </div>
+  {% if movil.tiene_historial and perms.partes.change_vehiculo %}<p class="ayuda" style="margin-bottom:0;">Ya tiene historial: no se puede quitar, pero sí dar de baja para que no se ofrezca en las listas.</p>{% endif %}
+</div>
+
+<div class="card">
+  <h2>Partes de siniestro ({{ cantidad_partes }})</h2>
+  {% if partes %}<div class="tabla-scroll"><table>
+    <tr><th>N°</th><th>Fecha</th><th>Tipo / motivo</th><th>Km regreso</th></tr>
+    {% for p in partes %}<tr>
+      <td><a href="{% url 'detalle_parte' p.pk %}">{{ p.numero_correlativo }}/{{ p.anio }}</a></td>
+      <td>{{ p.fecha|date:"d/m/Y" }}</td><td>{{ p.tipo }} / {{ p.motivo }}</td><td>{{ p.km_regreso|default:"—" }}</td>
+    </tr>{% endfor %}
+  </table></div>{% else %}<p class="vacio">Ninguno.</p>{% endif %}
+</div>
+
+{% if perms.partes.view_capacitacion %}
+<div class="card">
+  <h2>Capacitaciones ({{ cantidad_capacitaciones }})</h2>
+  {% if capacitaciones %}<div class="tabla-scroll"><table>
+    <tr><th>N°</th><th>Fecha</th><th>Datos</th><th>Km de regreso</th></tr>
+    {% for c in capacitaciones %}<tr>
+      <td><a href="{% url 'detalle_capacitacion' c.pk %}">{{ c.numero_correlativo }}/{{ c.anio }}</a></td>
+      <td>{{ c.fecha|date:"d/m/Y" }}</td><td>{{ c.tema }}</td><td>{{ c.km_regreso|default:"—" }}</td>
+    </tr>{% endfor %}
+  </table></div>{% else %}<p class="vacio">Ninguna.</p>{% endif %}
+</div>
+{% endif %}
+
+{% if perms.partes.view_mantenimiento %}
+<div class="card">
+  <h2>Mantenimientos ({{ cantidad_mantenimientos }})</h2>
+  {% if mantenimientos %}<div class="tabla-scroll"><table>
+    <tr><th>N°</th><th>Fecha</th><th>Tipo / motivo</th></tr>
+    {% for m in mantenimientos %}<tr>
+      <td><a href="{% url 'detalle_mantenimiento' m.pk %}">{{ m.numero_correlativo }}/{{ m.anio }}</a></td>
+      <td>{{ m.fecha|date:"d/m/Y" }}</td><td>{{ m.get_tipo_display }}{% if m.motivo %} / {{ m.motivo }}{% endif %}</td>
+    </tr>{% endfor %}
+  </table></div>{% else %}<p class="vacio">Ninguno.</p>{% endif %}
+  {% if perms.partes.add_mantenimiento %}<a class="agregar" href="{% url 'nuevo_mantenimiento' %}?movil={{ movil.pk }}">+ Nuevo mantenimiento</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

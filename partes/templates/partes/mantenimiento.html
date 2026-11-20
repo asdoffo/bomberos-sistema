@@ -1,0 +1,81 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}Mantenimiento {{ m.numero_correlativo }}/{{ m.anio }} — Bomberos Villa María{% endblock %}
+
+{% block estilos %}
+  .datos { display:grid; grid-template-columns:repeat(auto-fill, minmax(13rem, 1fr)); gap:0.7rem 1.2rem; }
+  .datos span { display:block; font-size:0.75rem; color:var(--gris); text-transform:uppercase; }
+  table.tabla { width:100%; border-collapse:collapse; font-size:0.9rem; }
+  .tabla th, .tabla td { text-align:left; padding:0.4rem; border-bottom:1px solid #f0f0f0; }
+  .tabla th { font-size:0.75rem; color:var(--gris); text-transform:uppercase; }
+{% endblock %}
+
+{% block contenido %}
+<p style="margin:0 0 0.6rem 0;"><a href="{% url 'mantenimientos' %}?anio={{ m.anio }}">Volver a Mantenimientos</a></p>
+
+<div class="card">
+  <h1 style="margin-bottom:0.2rem;">Control de Mantenimiento N° {{ m.numero_correlativo }}/{{ m.anio }}</h1>
+  <div class="subtitulo">{{ m.que }} · {{ m.get_tipo_display }}{% if m.motivo %} · {{ m.motivo }}{% endif %}</div>
+  <div class="datos" style="margin-top:1rem;">
+    <div><span>Fecha</span>{{ m.fecha|date:"d/m/Y" }}</div>
+    <div><span>Horario</span>{{ m.hora_inicio|time:"H:i"|default:"—" }} a {{ m.hora_fin|time:"H:i"|default:"—" }} Hs.{% if m.horas %} ({{ m.horas }} h){% endif %}</div>
+    <div><span>Obligatoria</span>{{ m.obligatoria|yesno:"Sí,No" }}</div>
+    {% if m.kilometraje %}<div><span>Km del móvil</span>{{ m.kilometraje }}</div>{% endif %}
+    <div><span>Lugar de reparación</span>{{ m.get_lugar_display }}{% if m.taller %} ({{ m.taller }}){% endif %}</div>
+    <div><span>Registrado en libros</span>{{ m.registro_libros|yesno:"Sí,No" }}</div>
+    <div><span>Autorizó</span>{{ m.autorizo|default:"—" }}</div>
+    <div><span>A cargo de</span>{{ m.a_cargo|default:"—" }}</div>
+    <div><span>Controló</span>{{ m.controlo|default:"—" }}</div>
+    <div><span>Personal de guardia</span>{{ m.guardia|default:"—" }}</div>
+  </div>
+  {% if m.descripcion %}<h3 style="margin-top:1.2rem;">Datos del mantenimiento</h3><p>{{ m.descripcion|linebreaksbr }}</p>{% endif %}
+  {% if m.observaciones %}<h3>Observaciones</h3><p>{{ m.observaciones|linebreaksbr }}</p>{% endif %}
+  {% if perms.partes.change_mantenimiento %}
+  <div class="acciones" style="margin-top:1rem;"><a class="btn gris" href="{% url 'editar_mantenimiento' m.pk %}">Corregir</a></div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Costos</h2>
+  <div class="datos">
+    <div><span>Repuestos (aprox.)</span>{% if m.costo_repuestos is not None %}$ {{ m.costo_repuestos|floatformat:"2g" }}{% else %}—{% endif %}</div>
+    <div><span>Repuestos pedidos el</span>{{ m.repuestos_pedidos|date:"d/m/Y"|default:"—" }}</div>
+    <div><span>Horas de taller</span>{{ m.horas_taller|default:"—" }}</div>
+    <div><span>Costo real hora</span>{% if m.costo_hora is not None %}$ {{ m.costo_hora|floatformat:"2g" }}{% else %}—{% endif %}</div>
+    <div><span>Costo por bombero</span>{% if m.costo_bombero is not None %}$ {{ m.costo_bombero|floatformat:"2g" }}{% else %}—{% endif %}</div>
+    <div><span>Total estimado</span><b>{% if m.costo_total is not None %}$ {{ m.costo_total|floatformat:"2g" }}{% else %}—{% endif %}</b></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Personal que trabajó ({{ participantes|length }})</h2>
+  {% if participantes %}
+  <div class="tabla-scroll">
+  <table class="tabla">
+    <tr><th>N°</th><th>Apellido y nombre</th><th>Rango</th></tr>
+    {% for i, merito in participantes %}
+    <tr>
+      <td><b>{{ merito|stringformat:"03d"|default:"—" }}</b></td>
+      <td>{% if perms.partes.view_integrante %}<a href="{% url 'ficha_bombero' i.pk %}">{{ i.apellido }}, {{ i.nombre }}</a>{% else %}{{ i.apellido }}, {{ i.nombre }}{% endif %}</td>
+      <td>{{ i.rango }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% else %}<p class="vacio">Todavía no se marcó a nadie.</p>{% endif %}
+</div>
+
+{% if anteriores %}
+<div class="card">
+  <h2>Mantenimientos anteriores de este móvil</h2>
+  <table class="tabla">
+    <tr><th>N°</th><th>Fecha</th><th>Tipo</th><th>Motivo</th></tr>
+    {% for a in anteriores %}
+    <tr><td><a href="{% url 'detalle_mantenimiento' a.pk %}">{{ a.numero_correlativo }}/{{ a.anio }}</a></td>
+        <td>{{ a.fecha|date:"d/m/Y" }}</td><td>{{ a.get_tipo_display }}</td><td>{{ a.motivo|default:"—" }}</td></tr>
+    {% endfor %}
+  </table>
+  {% if m.vehiculo_id %}<p style="margin-bottom:0;"><a href="{% url 'mantenimientos' %}?anio={{ m.anio }}&movil={{ m.vehiculo_id }}">Ver todos los de {{ m.vehiculo }}</a></p>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

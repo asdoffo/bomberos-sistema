@@ -1,0 +1,32 @@
+{% extends "partes/base.html" %}
+
+{% block titulo %}Sin conexión{% endblock %}
+
+{% block contenido %}
+<div class="card" style="max-width:720px;">
+  <h1>Sin conexión</h1>
+  <p>Esta pantalla no está guardada en el celular. Podés seguir trabajando con los partes descargados:</p>
+  <ul id="partes-descargados"><li class="vacio">No hay partes descargados en este celular.</li></ul>
+  <p class="ayuda">Para llevar un parte, abrilo con señal y tocá "Descargar en este celular".
+    Lo que guardes sin señal se envía solo cuando vuelva la conexión.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  Celular.todos("descargas").then(function (descargas) {
+    if (!descargas.length) return;
+    var lista = document.getElementById("partes-descargados");
+    lista.innerHTML = "";
+    descargas.forEach(function (d) {
+      var item = document.createElement("li");
+      var detalle = document.createElement("a");
+      detalle.href = d.urls[0]; detalle.textContent = d.titulo;
+      var completar = document.createElement("a");
+      completar.href = d.urls[1]; completar.textContent = "Completar datos";
+      item.append(detalle, " · ", completar);
+      lista.appendChild(item);
+    });
+  });
+</script>
+{% endblock %}
